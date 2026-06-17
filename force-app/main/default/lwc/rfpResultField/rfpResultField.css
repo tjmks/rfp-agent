@@ -1,0 +1,67 @@
+.result-row {
+    transition: background-color 0.15s ease;
+    outline: none;
+}
+.result-row:focus,
+.result-row:focus-visible {
+    box-shadow: 0 0 0 2px #1b96ff;
+    border-radius: 4px;
+}
+
+.source-tag {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+}
+.source-tag_extraction { background: #eef4ff; color: #2b5bbd; }
+.source-tag_reasoning  { background: #f3eefe; color: #6b3fb0; }
+
+.not-found-pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 1px dashed #c9c7c5;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #706e6b;
+    background: #fafaf9;
+}
+.row_accepted { border-left: 3px solid #2e844a; }
+.row_rejected { border-left: 3px solid #ba0517; opacity: 0.65; }
+
+.value_rejected { text-decoration: line-through; color: #706e6b; }
+.value_reasoning { white-space: pre-wrap; }
+
+.status-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.status_pending  { background: #f3f3f3; color: #706e6b; }
+.status_accepted { background: #d4edda; color: #155724; }
+.status_rejected { background: #f8d7da; color: #721c24; }
+
+.citation-toggle {
+    font-size: 0.75rem;
+    color: #0070d2;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.citation-text {
+    border-left: 3px solid #dddbda;
+    padding-left: 0.75rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: #3e3e3c;
+    font-style: italic;
+    white-space: pre-wrap;
+}

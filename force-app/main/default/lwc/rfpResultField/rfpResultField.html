@@ -1,0 +1,125 @@
+<template>
+    <div class={rowClass} tabindex="0" onkeydown={handleKeyDown}>
+        <!-- Label -->
+        <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-start">
+            <div class="slds-col slds-size_2-of-12">
+                <p class="slds-text-body_small slds-text-color_weak">
+                    {result.fieldLabel}
+                    <template if:true={result.isRequired}>
+                        <abbr class="slds-required" title="required"> *</abbr>
+                    </template>
+                </p>
+            </div>
+
+            <!-- Value / Edit -->
+            <div class="slds-col slds-size_6-of-12">
+                <template if:false={isEditing}>
+                    <template if:true={isEmpty}>
+                        <span class="not-found-pill" title="The model did not find a value for this field">Not found</span>
+                    </template>
+                    <template if:false={isEmpty}>
+                        <p class={valueClass}>{displayValue}</p>
+                    </template>
+                </template>
+                <template if:true={isEditing}>
+                    <lightning-textarea
+                        value={editValue}
+                        onchange={handleEditChange}
+                        variant="label-hidden"
+                        max-length="32768"
+                        class="slds-m-bottom_xx-small">
+                    </lightning-textarea>
+                    <div class="slds-button-group">
+                        <lightning-button
+                            label="Save"
+                            variant="brand"
+                            size="small"
+                            onclick={handleEditSave}>
+                        </lightning-button>
+                        <lightning-button
+                            label="Cancel"
+                            size="small"
+                            onclick={handleEditCancel}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Confidence + source template -->
+            <div class="slds-col slds-size_2-of-12 slds-text-align_center">
+                <template if:false={isReasoning}>
+                    <c-rfp-confidence-badge score={result.confidenceScore}></c-rfp-confidence-badge>
+                </template>
+                <div class="slds-m-top_xx-small">
+                    <span class={sourceClass} title="Source prompt template">{sourceLabel}</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="slds-col slds-size_2-of-12 slds-text-align_right">
+                <template if:false={isEditing}>
+                    <template if:false={isResolved}>
+                        <lightning-button-group>
+                            <lightning-button-icon
+                                icon-name="utility:check"
+                                variant="border-filled"
+                                alternative-text="Accept"
+                                title="Accept"
+                                onclick={handleAccept}>
+                            </lightning-button-icon>
+                            <lightning-button-icon
+                                icon-name="utility:edit"
+                                variant="border-filled"
+                                alternative-text="Edit"
+                                title="Edit"
+                                onclick={handleEdit}>
+                            </lightning-button-icon>
+                            <lightning-button-icon
+                                icon-name="utility:close"
+                                variant="border-filled"
+                                alternative-text="Reject"
+                                title="Reject"
+                                onclick={handleReject}>
+                            </lightning-button-icon>
+                        </lightning-button-group>
+                    </template>
+                    <template if:true={isResolved}>
+                        <lightning-button-icon
+                            icon-name="utility:undo"
+                            variant="border-filled"
+                            alternative-text="Reset to Pending"
+                            title="Reset"
+                            onclick={handleReset}>
+                        </lightning-button-icon>
+                    </template>
+                </template>
+            </div>
+        </div>
+
+        <!-- Status + Citation row -->
+        <div class="slds-grid slds-gutters_x-small slds-m-top_xx-small">
+            <div class="slds-col slds-size_2-of-12"></div>
+            <div class="slds-col slds-size_10-of-12">
+                <span class={statusBadgeClass}>{result.reviewStatus}</span>
+
+                <template if:true={hasCitation}>
+                    <button
+                        class="slds-button slds-button_reset citation-toggle slds-m-left_x-small"
+                        onclick={toggleCitation}>
+                        <lightning-icon
+                            icon-name={citationIconName}
+                            size="xx-small"
+                            class="slds-m-right_xx-small">
+                        </lightning-icon>
+                        <span class="slds-text-body_small">Citation</span>
+                    </button>
+                    <template if:true={showCitation}>
+                        <blockquote class="citation-text slds-m-top_x-small">
+                            {result.citation}
+                        </blockquote>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

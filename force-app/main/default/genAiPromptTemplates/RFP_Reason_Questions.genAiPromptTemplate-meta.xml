@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_5</activeVersionIdentifier>
+    <developerName>RFP_Reason_Questions</developerName>
+    <masterLabel>RFP Reason Questions</masterLabel>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+    <templateVersions>
+        <versionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_5</versionIdentifier>
+        <inputs>
+            <apiName>RFPDocument</apiName>
+            <definition>SOBJECT://ContentDocument</definition>
+            <masterLabel>RFP Document</masterLabel>
+            <referenceName>Input:RFPDocument</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>QuestionsJSON</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Questions JSON</masterLabel>
+            <referenceName>Input:QuestionsJSON</referenceName>
+            <required>true</required>
+        </inputs>
+        <inputs>
+            <apiName>GroundingContext</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Grounding Context</masterLabel>
+            <referenceName>Input:GroundingContext</referenceName>
+            <required>false</required>
+        </inputs>
+        <inputs>
+            <apiName>RFPRecord</apiName>
+            <definition>SOBJECT://RFP__c</definition>
+            <masterLabel>RFP Record</masterLabel>
+            <referenceName>Input:RFPRecord</referenceName>
+            <required>true</required>
+        </inputs>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude48Opus</primaryModel>
+        <status>Published</status>
+        <content>You are a senior RFP strategist advising a team deciding whether and how to respond to this RFP. Read the attached document in full, then answer each analytical question below. Reason across the whole document — synthesize, infer implications, and surface risks and considerations a careful reader would draw out. You may go beyond literal text, but ground every conclusion in what the document actually says.
+{!$Input:GroundingContext}
+Document:
+{!$Input:RFPDocument}
+
+RFP: {!$Input:RFPRecord.Name}
+
+Questions:
+{!$Input:QuestionsJSON}
+
+Each question has: id, label, question_text, output_type.
+
+Return ONLY a valid JSON array — one entry per question, in the same order:
+[
+  {
+    "id": "&lt;question id&gt;",
+    "value": "&lt;your analysis as a string; use blank lines between paragraphs, hyphens for bullet list items&gt;",
+    "confidence": &lt;decimal 0.0-1.0 reflecting how well the document supports your analysis&gt;,
+    "citation": "&lt;short supporting passage or paraphrase (≤100 words) from the document that best grounds your analysis, or null&gt;"
+  }
+]
+
+Guidance for analytical answers:
+- Be specific and decision-useful. Prefer concrete observations tied to the document over generic boilerplate.
+- If the document lacks the information needed to answer well, say so explicitly in the value and lower the confidence accordingly.
+- confidence reflects how strongly the document grounds your analysis, not how confident you are in your writing.
+- Structure: separate paragraphs with a blank line; use `- ` prefix for bullet list items. Do not use markdown headers, bold, or other markup.
+
+Do not include any text, explanation, or markdown outside the JSON array.</content>
+    </templateVersions>
+</GenAiPromptTemplate>

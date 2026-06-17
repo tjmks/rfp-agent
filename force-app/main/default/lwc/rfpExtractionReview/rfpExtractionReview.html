@@ -1,0 +1,137 @@
+<template>
+    <div class="review-container">
+
+        <!-- Processing spinner -->
+        <template if:true={isProcessing}>
+            <div class="slds-align_absolute-center slds-p-around_large">
+                <lightning-spinner alternative-text="Extracting data from document..." size="medium"></lightning-spinner>
+                <p class="slds-m-top_medium slds-text-align_center slds-text-color_weak">
+                    Extracting data from document…
+                </p>
+            </div>
+        </template>
+
+        <!-- Error state -->
+        <template if:true={hasError}>
+            <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert">
+                <lightning-icon icon-name="utility:error" size="small" class="slds-m-right_x-small"></lightning-icon>
+                <span>Extraction failed: {rfp.Processing_Error__c}</span>
+            </div>
+        </template>
+
+        <!-- Main review layout -->
+        <template if:true={showReview}>
+            <!-- Toolbar -->
+            <div class="review-toolbar slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                <div class="slds-col">
+                    <span class="slds-text-body_small slds-text-color_weak">
+                        {pendingCount} of {results.length} pending
+                        <template if:true={hasRequiredPending}>
+                            &nbsp;·&nbsp;
+                            <span class="required-notice">{requiredPendingCount} required remaining</span>
+                        </template>
+                    </span>
+                    <div class="review-progress slds-m-top_xx-small">
+                        <lightning-progress-bar
+                            value={progressPercent}
+                            size="small"
+                            variant="circular">
+                        </lightning-progress-bar>
+                    </div>
+                </div>
+                <div class="slds-col slds-text-align_right slds-grid slds-grid_align-end slds-grid_vertical-align-center">
+                    <lightning-button
+                        label="Open Document"
+                        icon-name="utility:preview"
+                        onclick={handleOpenDocument}
+                        disabled={noDocument}
+                        class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button
+                        label={bulkAcceptLabel}
+                        icon-name="utility:check"
+                        onclick={handleBulkAccept}
+                        disabled={isBusy}
+                        class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Save RFP Extraction"
+                        variant="brand"
+                        icon-name="utility:forward"
+                        icon-position="right"
+                        onclick={handleFinalize}
+                        disabled={finalizeDisabled}>
+                    </lightning-button>
+                </div>
+            </div>
+
+            <!-- Filter chips -->
+            <div class="filter-bar slds-m-bottom_x-small" role="group" aria-label="Filter fields">
+                <template for:each={filters} for:item="f">
+                    <button
+                        key={f.key}
+                        class={f.cssClass}
+                        data-filter={f.key}
+                        onclick={handleFilterClick}>
+                        {f.label}
+                        <span class="filter-chip__count">{f.count}</span>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Full-width extraction results -->
+            <div class="results-panel">
+                <div class="panel-header">
+                    <lightning-icon icon-name="utility:list" size="small" class="slds-m-right_xx-small"></lightning-icon>
+                    <span class="slds-text-heading_small">Extracted Fields</span>
+                    <template if:true={rfp.Overall_Confidence__c}>
+                        <c-rfp-confidence-badge
+                            score={rfp.Overall_Confidence__c}
+                            class="slds-m-left_small">
+                        </c-rfp-confidence-badge>
+                    </template>
+                </div>
+                <div class="results-scroll" onnavigate={handleNavigate}>
+                <div class="results-column-header slds-grid slds-gutters_x-small">
+                    <div class="slds-col slds-size_2-of-12">Field</div>
+                    <div class="slds-col slds-size_6-of-12 slds-text-align_center">Answer</div>
+                    <div class="slds-col slds-size_2-of-12 slds-text-align_center">Confidence &amp; Source</div>
+                    <div class="slds-col slds-size_2-of-12"></div>
+                </div>
+                    <template if:true={hasFilteredResults}>
+                        <template for:each={groupedResults} for:item="group">
+                            <div key={group.key} class="category-group">
+                                <div class="category-header">
+                                    <span>{group.category}</span>
+                                    <span class="category-header__count">{group.count}</span>
+                                </div>
+                                <template for:each={group.items} for:item="result">
+                                    <c-rfp-result-field
+                                        key={result.id}
+                                        data-id={result.id}
+                                        result={result}
+                                        onresultchange={handleResultChange}>
+                                    </c-rfp-result-field>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={hasFilteredResults}>
+                        <p class="slds-text-align_center slds-text-color_weak slds-p-around_medium">
+                            No fields match this filter.
+                        </p>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- Toast area -->
+        <template if:true={toastMessage}>
+            <div class={toastClass} role="status">
+                <span class="slds-assistive-text">Info</span>
+                {toastMessage}
+            </div>
+        </template>
+
+    </div>
+</template>

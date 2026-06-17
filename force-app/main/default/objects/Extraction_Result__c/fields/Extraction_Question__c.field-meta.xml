@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Extraction_Question__c</fullName>
+    <label>Extraction Question</label>
+    <type>Lookup</type>
+    <referenceTo>Extraction_Question__c</referenceTo>
+    <relationshipLabel>Extraction Results</relationshipLabel>
+    <relationshipName>Extraction_Results</relationshipName>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

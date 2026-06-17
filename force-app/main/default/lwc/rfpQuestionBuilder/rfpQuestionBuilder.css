@@ -1,0 +1,200 @@
+.title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.title-toggle {
+    margin-left: 0.5rem;
+}
+
+.summary-chip {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #706e6b;
+}
+
+.empty-state {
+    border: 1px dashed #dddbda;
+    border-radius: 6px;
+    background: #fafaf9;
+}
+
+/* Question card */
+.q-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    transition: border-color 0.1s ease, background-color 0.1s ease;
+}
+.q-card:hover { border-color: #d8dde6; }
+
+.q-card_dragging { opacity: 0.5; }
+.q-card_drop-target { border-top: 2px solid #0070d2; }
+.q-card_dirty { border-left: 3px solid #0070d2; padding-left: calc(1rem - 2px); }
+.q-card_error { border-color: #c23934; background: #fff5f5; }
+.q-card_pending-delete { background: #fef9e7; border-color: #fab436; }
+
+.q-card-header {
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.q-number {
+    min-width: 1.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #706e6b;
+    text-align: right;
+    /* Vertically centers the number with the label input field on the row below the field's own label */
+    padding-top: 1.65rem;
+}
+
+.q-drag-handle {
+    cursor: grab;
+    color: #b0adab;
+    padding-right: 0.25rem;
+    padding-top: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+.q-drag-handle:active { cursor: grabbing; }
+
+.q-category-header {
+    width: 160px;
+    min-width: 120px;
+}
+
+.q-required-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+    white-space: nowrap;
+    min-width: 6rem;
+}
+
+.dirty-indicator {
+    font-size: 1.4rem;
+    color: #0070d2;
+    line-height: 1;
+}
+
+/* Make the label *value* the dominant element, not the field's caption.
+   Inheritable properties set on the lightning-input host cascade into
+   its shadow-DOM <input>; the SLDS styling hook handles the text color. */
+.q-label-input {
+    font-size: 0.875rem;
+    font-weight: 600;
+    --slds-c-input-text-color: #080707;
+}
+
+.q-prompt textarea {
+    min-height: 3rem;
+}
+
+.q-hint-input textarea {
+    min-height: 4rem;
+}
+
+.q-hint-toggle-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.hint-disclosure {
+    font-size: 0.8125rem;
+    color: #0070d2;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+.hint-disclosure:hover { text-decoration: underline; }
+.hint-disclosure[disabled] { color: #b0adab; cursor: not-allowed; }
+
+.hint-disclosure_set::after {
+    content: '';
+    display: inline-block;
+    width: 0.4rem; height: 0.4rem;
+    border-radius: 50%;
+    background: #0070d2;
+    margin-left: 0.4rem;
+}
+
+.row-error {
+    font-size: 0.75rem;
+    color: #c23934;
+    margin: 0.5rem 0 0;
+}
+
+.q-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    border-top: 1px solid #f3f2f2;
+    padding-top: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.builder-footer {
+    border-top: 1px solid #dddbda;
+    padding-top: 0.75rem;
+}
+
+/* Overview mode */
+.overview-toggle {
+    --slds-c-toggle-color-background-checked: #0176d3;
+}
+
+.overview-group {
+    margin-bottom: 1rem;
+}
+
+.overview-category-header {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #444;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #dddbda;
+    margin-bottom: 0.25rem;
+}
+
+.overview-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 22%) 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.4rem 0.25rem;
+    border-bottom: 1px solid #f3f3f3;
+    transition: background-color 0.1s ease;
+}
+.overview-row:hover { background: #fafaf9; }
+
+.overview-deactivate {
+    --slds-c-button-text-color: #b0adab;
+}
+.overview-row:hover .overview-deactivate {
+    --slds-c-button-text-color: #c23934;
+}
+
+.overview-label {
+    font-weight: 600;
+    color: #181818;
+}
+
+.overview-prompt {
+    color: #706e6b;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    min-width: 0;
+    scrollbar-width: thin;
+}
+.overview-prompt::-webkit-scrollbar { height: 6px; }
+.overview-prompt::-webkit-scrollbar-thumb {
+    background: #d8dde6;
+    border-radius: 3px;
+}

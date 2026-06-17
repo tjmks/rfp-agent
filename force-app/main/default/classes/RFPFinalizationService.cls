@@ -1,0 +1,122 @@
+public with sharing class RFPFinalizationService {
+
+    public static void finalize(Id rfpId) {
+        RFP__c rfp = [
+            SELECT Id, Extraction_Profile__c
+            FROM RFP__c
+            WHERE Id = :rfpId
+
+            LIMIT 1
+        ];
+
+        validateRequiredFields(rfpId, rfp.Extraction_Profile__c);
+
+        List<Extraction_Result__c> accepted = [
+            SELECT Id, Target_Field_API_Name__c, Extracted_Value__c,
+                   Accepted_Value__c, Review_Status__c
+            FROM Extraction_Result__c
+            WHERE RFP__c = :rfpId
+              AND Review_Status__c IN ('Accepted', 'Edited')
+              AND Target_Field_API_Name__c != null
+
+        ];
+
+        Map<String, Schema.SObjectField> fieldMap =
+            Schema.SObjectType.RFP__c.fields.getMap();
+
+        RFP__c rfpToUpdate = new RFP__c(Id = rfpId);
+        List<String> coercionErrors = new List<String>();
+
+        for (Extraction_Result__c result : accepted) {
+            Schema.SObjectField sField = fieldMap.get(
+                result.Target_Field_API_Name__c.toLowerCase()
+            );
+            if (sField == null) {
+                continue;
+            }
+
+            String value = result.Review_Status__c == 'Edited'
+                ? result.Accepted_Value__c
+                : result.Extracted_Value__c;
+
+            try {
+                Object coerced = coerce(value, sField.getDescribe().getType());
+                rfpToUpdate.put(sField, coerced);
+            } catch (Exception e) {
+                coercionErrors.add(
+                    result.Target_Field_API_Name__c + ': ' + e.getMessage()
+                );
+            }
+        }
+
+        if (!coercionErrors.isEmpty()) {
+            throw new RFPExtractionException(
+                'Value conversion failed for: ' + String.join(coercionErrors, ', ')
+            );
+        }
+
+        rfpToUpdate.Status__c = 'Approved';
+        rfpToUpdate.Processing_Status__c = 'Complete';
+        update rfpToUpdate;
+    }
+
+    private static void validateRequiredFields(Id rfpId, Id profileId) {
+        Set<Id> requiredQuestionIds = new Set<Id>();
+        for (Extraction_Question__c q : [
+            SELECT Id
+            FROM Extraction_Question__c
+            WHERE Extraction_Profile__c = :profileId
+              AND Is_Required__c = true
+
+        ]) {
+            requiredQuestionIds.add(q.Id);
+        }
+
+        if (requiredQuestionIds.isEmpty()) {
+            return;
+        }
+
+        List<Extraction_Result__c> unresolved = [
+            SELECT Field_Label__c
+            FROM Extraction_Result__c
+            WHERE RFP__c = :rfpId
+              AND Extraction_Question__c IN :requiredQuestionIds
+              AND Review_Status__c = 'Pending'
+
+        ];
+
+        if (!unresolved.isEmpty()) {
+            List<String> labels = new List<String>();
+            for (Extraction_Result__c r : unresolved) {
+                labels.add(r.Field_Label__c);
+            }
+            throw new RFPExtractionException(
+                'Required fields not yet reviewed: ' + String.join(labels, ', ')
+            );
+        }
+    }
+
+    private static Object coerce(String value, Schema.DisplayType dtype) {
+        if (String.isBlank(value)) {
+            return null;
+        }
+        if (dtype == Schema.DisplayType.DATE) {
+            return Date.valueOf(value.left(10));
+        }
+        if (dtype == Schema.DisplayType.DATETIME) {
+            return DateTime.valueOf(value.replace('T', ' ').left(19));
+        }
+        if (dtype == Schema.DisplayType.DOUBLE
+            || dtype == Schema.DisplayType.CURRENCY
+            || dtype == Schema.DisplayType.PERCENT) {
+            return Decimal.valueOf(value.replaceAll('[^0-9.]', ''));
+        }
+        if (dtype == Schema.DisplayType.INTEGER) {
+            return Integer.valueOf(value.replaceAll('[^0-9]', ''));
+        }
+        if (dtype == Schema.DisplayType.BOOLEAN) {
+            return value.toLowerCase() == 'true';
+        }
+        return value;
+    }
+}

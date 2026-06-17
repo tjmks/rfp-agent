@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Extraction_Profile__c</fullName>
+    <label>Extraction Profile</label>
+    <type>MasterDetail</type>
+    <referenceTo>Extraction_Profile__c</referenceTo>
+    <relationshipLabel>Extraction Questions</relationshipLabel>
+    <relationshipName>Extraction_Questions</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

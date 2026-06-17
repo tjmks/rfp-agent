@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>RFP Agent</label>
+    <description>Grants access to all RFP Agent objects, fields, Apex classes, and LWC components. Also requires the Einstein Generative AI User permission set for AI processing.</description>
+
+    <!-- Tab visibility -->
+    <tabSettings>
+        <tab>RFP__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Profile__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Question__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Result__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+
+    <!-- Object permissions -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <viewAllRecords>false</viewAllRecords>
+        <object>RFP__c</object>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <viewAllRecords>false</viewAllRecords>
+        <object>Extraction_Profile__c</object>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <viewAllRecords>false</viewAllRecords>
+        <object>Extraction_Question__c</object>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <viewAllRecords>false</viewAllRecords>
+        <object>Extraction_Result__c</object>
+    </objectPermissions>
+
+    <!-- Field permissions: RFP__c -->
+    <fieldPermissions><editable>true</editable><field>RFP__c.Account__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>RFP__c.Extraction_Profile__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>RFP__c.Opportunity__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>RFP__c.Overall_Confidence__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>RFP__c.Processing_Error__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>RFP__c.Processing_Status__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>RFP__c.Source_Document_Id__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>RFP__c.Status__c</field><readable>true</readable></fieldPermissions>
+
+    <!-- Field permissions: Extraction_Profile__c -->
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Description__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Is_Default__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Grounding_Context__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Is_Active__c</field><readable>true</readable></fieldPermissions>
+
+    <!-- Field permissions: Extraction_Question__c (Output_Type__c, Extraction_Profile__c are required fields → implicit access, not listed) -->
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Confidence_Threshold__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Extraction_Hint__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Is_Required__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Question_Type__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Question_Text__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Sort_Order__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Target_Field_API_Name__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Category__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Is_Active__c</field><readable>true</readable></fieldPermissions>
+
+    <!-- Field permissions: Extraction_Result__c -->
+    <fieldPermissions><editable>true</editable><field>Extraction_Result__c.Accepted_Value__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Citation__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Confidence_Score__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Extracted_Value__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Extraction_Question__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Field_Label__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Result__c.Review_Status__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Sort_Order__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Target_Field_API_Name__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Category__c</field><readable>true</readable></fieldPermissions>
+
+    <!-- Apex class access -->
+    <classAccesses>
+        <apexClass>RFPController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RFPExtractionQueueable</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RFPResultParser</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RFPFinalizationService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+
+</PermissionSet>

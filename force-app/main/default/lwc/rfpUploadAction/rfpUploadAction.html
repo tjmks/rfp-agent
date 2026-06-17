@@ -1,0 +1,114 @@
+<template>
+    <div class="upload-container">
+        <template if:false={isDone}>
+
+            <div class="header">
+                <img src={agentforceGuyUrl} alt="Agentforce" class="agentforce-icon" />
+                <h1 class="header-title">Process RFP</h1>
+                <p class="header-subtitle">Let Agentforce extract the answers for you.</p>
+            </div>
+
+            <!-- Step 1: Upload -->
+            <template if:false={hasFile}>
+                <div class="slds-form-element slds-m-bottom_medium upload-step">
+                    <lightning-file-upload
+                        label=""
+                        name="rfpUpload"
+                        accept=".pdf"
+                        record-id={contextRecordId}
+                        onuploadfinished={handleUploadFinished}
+                        multiple="false">
+                    </lightning-file-upload>
+                    <p class="slds-form-element__help slds-text-color_weak slds-m-top_xx-small">
+                        Structure and questions inherited from Extraction Profile
+                    </p>
+                </div>
+            </template>
+
+            <!-- Step 2: Configure -->
+            <template if:true={hasFile}>
+                <div class="file-pill slds-m-bottom_medium">
+                    <lightning-icon icon-name="doctype:pdf" size="small" class="slds-m-right_x-small"></lightning-icon>
+                    <span class="slds-text-body_regular">{uploadedFileName}</span>
+                    <button class="slds-button slds-button_icon slds-m-left_x-small" title="Remove" onclick={handleRemoveFile}>
+                        <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                    </button>
+                </div>
+
+                <div class="slds-form-element slds-m-bottom_medium">
+                    <label class="slds-form-element__label" for="profileSelect">
+                        <abbr class="slds-required" title="required">*</abbr>
+                        Extraction Profile
+                    </label>
+                    <div class="slds-form-element__control">
+                        <lightning-combobox
+                            name="profileSelect"
+                            placeholder="Select a profile…"
+                            value={selectedProfileId}
+                            options={profileOptions}
+                            onchange={handleProfileChange}
+                            required>
+                        </lightning-combobox>
+                    </div>
+                    <p class="slds-form-element__help slds-text-color_weak slds-m-top_xx-small">
+                        The profile defines which fields will be extracted from the document.
+                    </p>
+                </div>
+
+                <div class="slds-form-element slds-m-bottom_medium">
+                    <lightning-record-picker
+                        label={accountFieldLabel}
+                        placeholder="Search accounts…"
+                        object-api-name="Account"
+                        value={accountId}
+                        onchange={handleAccountChange}>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="slds-form-element slds-m-bottom_medium">
+                    <lightning-record-picker
+                        label={opportunityFieldLabel}
+                        placeholder="Search opportunities…"
+                        object-api-name="Opportunity"
+                        value={opportunityId}
+                        onchange={handleOpportunityChange}>
+                    </lightning-record-picker>
+                </div>
+
+                <template if:true={errorMessage}>
+                    <p class="slds-text-color_error slds-m-bottom_small">{errorMessage}</p>
+                </template>
+            </template>
+
+            <div class="action-footer">
+                <div class="action-footer__primary">
+                    <lightning-button
+                        label={submitLabel}
+                        variant="brand"
+                        disabled={submitDisabled}
+                        onclick={handleSubmit}
+                        class="primary-button">
+                    </lightning-button>
+                </div>
+                <button class="cancel-link" type="button" onclick={handleCancel}>Cancel</button>
+            </div>
+
+        </template>
+
+        <!-- Success state -->
+        <template if:true={isDone}>
+            <div class="success-state">
+                <lightning-icon icon-name="utility:success" variant="success" size="large"></lightning-icon>
+                <h2 class="slds-text-heading_medium">Extraction Started</h2>
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    The document is being processed. Open the RFP record to review results when ready.
+                </p>
+                <lightning-button
+                    label="Open RFP"
+                    variant="brand"
+                    onclick={handleOpenRFP}>
+                </lightning-button>
+            </div>
+        </template>
+    </div>
+</template>
