@@ -17,11 +17,9 @@ cd rfp-agent
 
 This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile.
 
-**2 manual steps after deploy** (these cannot be automated via the Metadata API):
+**1 manual step after deploy** (cannot be automated via the Metadata API):
 
-1. **Publish both Prompt Builder templates** — Setup → Prompt Builder → open `RFP_Extract_Questions` and `RFP_Reason_Questions` → publish each one. While there, confirm the model (Gemini 2.5 Flash / Opus 4.8) is available in your org.
-
-2. **Activate the 4 record pages as Org Default** — Setup → Lightning App Builder → open each page → Activate → Assign as Org Default:
+1. **Activate the 4 record pages as Org Default** — Setup → Lightning App Builder → open each page → Activate → Assign as Org Default:
    - RFP Record Page
    - Extraction Profile Record Page
    - Extraction Question Record Page
@@ -89,7 +87,7 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`), both receiving a `
 
 | Template | Handles | Intended model |
 |---|---|---|
-| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **Gemini 2.5 Flash** |
+| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **Gemini 3.5 Flash** |
 | `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **Opus 4.8** |
 
 **Model pinning:** the templates ship with their intended models set in the XML (`sfdc_ai__DefaultVertexAIGemini35Flash` for `RFP_Extract_Questions`, `sfdc_ai__DefaultBedrockAnthropicClaude48Opus` for `RFP_Reason_Questions`). If a model isn't available in a given org, open the template in Prompt Builder and set the model in the model picker, or replace the `<primaryModel>` value in the template XML with the exact model API name from your org's Einstein model list and redeploy. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
