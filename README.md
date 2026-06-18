@@ -55,9 +55,9 @@ The new version alias is automatically appended to `sfdx-project.json`.
 
 1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction automatically when Email-to-Case creates a Case with a PDF attachment.
 2. The queueable splits the profile's questions by `Question_Type__c` and runs **two passes** over the document:
-   - **Extraction** questions → `RFP_Extract_Questions` template (Gemini 3.5 Flash) — strict structured data (dates, contacts, budget).
-   - **Reasoning** questions → `RFP_Reason_Questions` template (Opus 4.8) — open-ended analysis (risks, win themes).
-   Both templates receive the document as a `ContentDocument` input and return the **same JSON contract**.
+   - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, Gemini 3.5 Flash) — strict structured data (dates, contacts, budget).
+   - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, Opus 4.8) — open-ended analysis (risks, win themes).
+   Both templates receive the document as a `ContentDocument` input and return the **same JSON contract**. Each template can be overridden per profile via `Extraction_Template__c` / `Reasoning_Template__c` on the profile record.
 3. Einstein LLM returns a JSON array per pass. `RFPResultParser` parses both into `Extraction_Result__c` records.
 4. The queueable rolls up `Overall_Confidence__c` from **extraction results only** (reasoning confidence is fuzzy) and fires the `RFP_Extraction_Complete__e` platform event.
 5. The user reviews results in the `rfpExtractionReview` component (lives on the RFP record page), accepting or rejecting each field.
@@ -68,7 +68,7 @@ The new version alias is automatically appended to `sfdx-project.json`.
 | Object | Purpose |
 |---|---|
 | `RFP__c` | Root record — links to Account, Opportunity, source document, and extraction profile |
-| `Extraction_Profile__c` | Named set of extraction questions (e.g. "Standard RFP Profile") |
+| `Extraction_Profile__c` | Named set of extraction questions (e.g. "Standard RFP Profile"). Optional `Extraction_Template__c` and `Reasoning_Template__c` fields override the org-default Prompt Builder template API names for that profile. |
 | `Extraction_Question__c` | Individual question: label, question text, output type, `Question_Type__c` (`Extraction` or `Reasoning`), and `Confidence_Threshold__c` (Extraction only — ignored and not shown in the builder for Reasoning questions) |
 | `Extraction_Result__c` | One result per question per RFP — extracted value, confidence score, review status |
 | `RFP_Extraction_Complete__e` | Platform event fired when a batch of extraction results is ready |
@@ -116,6 +116,8 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`), both receiving a `
 | `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **Opus 4.8** |
 
 **Model pinning:** the templates ship with their intended models set in the XML (`sfdc_ai__DefaultVertexAIGemini35Flash` for `RFP_Extract_Questions`, `sfdc_ai__DefaultBedrockAnthropicClaude48Opus` for `RFP_Reason_Questions`). If a model isn't available in a given org, open the template in Prompt Builder and set the model in the model picker, or replace the `<primaryModel>` value in the template XML with the exact model API name from your org's Einstein model list and redeploy. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
+
+**Per-profile template overrides:** set `Extraction_Template__c` and/or `Reasoning_Template__c` on an `Extraction_Profile__c` record to point that profile at a different Prompt Builder template API name. Leave blank to use the org defaults above. This lets you maintain, for example, a "Government RFP" profile that uses a compliance-focused extraction template while the standard profile uses the defaults — without any Apex changes.
 
 ## Permission Set
 
