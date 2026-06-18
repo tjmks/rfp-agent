@@ -25,14 +25,18 @@ if ! sf org display --target-org "$TARGET_ORG" &> /dev/null; then
   exit 1
 fi
 
-# Step 1: Deploy the RFP__c object alone first.
-# RelatedFileList (the Files related list) requires enableFeeds=true to be live
-# in the org before the layout validator will accept it. Objects deploy before
-# layouts within a single transaction, but Salesforce validates all components
-# against the current org state upfront — so we split this into two passes.
-echo "→ [1/4] Deploying RFP__c object (enableFeeds prerequisite)"
+# Step 1: Deploy all custom objects first.
+# Two reasons: (1) RFP__c.enableFeeds=true must be live in the org before the
+# layout validator will accept the RelatedFileList component. (2) lookup fields
+# on RFP__c reference Extraction_Profile__c, so all objects must exist before
+# the full source deploy validates field references.
+echo "→ [1/4] Deploying custom objects (prerequisite for layouts and field references)"
 sf project deploy start \
   --metadata "CustomObject:RFP__c" \
+             "CustomObject:Extraction_Profile__c" \
+             "CustomObject:Extraction_Question__c" \
+             "CustomObject:Extraction_Result__c" \
+             "CustomObject:RFP_Extraction_Complete__e" \
   --target-org "$TARGET_ORG" \
   --wait 30 \
   --concise
