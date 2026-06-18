@@ -64,12 +64,12 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
                     extractionQuestionIds.add(q.Id);
                 }
                 String response = invokeTemplate(EXTRACTION_TEMPLATE, rfp, serializeQuestions(extractionQuestions), groundingContext, EXTRACTION_GROUNDING_HEADER);
-                allResults.addAll(RFPResultParser.parse(rfpId, response, extractionQuestions));
+                allResults.addAll(RFPResultParser.parse(rfpId, response, extractionQuestions, 'Extraction'));
             }
 
             if (!reasoningQuestions.isEmpty()) {
                 String response = invokeTemplate(REASONING_TEMPLATE, rfp, serializeQuestions(reasoningQuestions), groundingContext, REASONING_GROUNDING_HEADER);
-                allResults.addAll(RFPResultParser.parse(rfpId, response, reasoningQuestions));
+                allResults.addAll(RFPResultParser.parse(rfpId, response, reasoningQuestions, 'Reasoning'));
             }
 
             insert allResults;

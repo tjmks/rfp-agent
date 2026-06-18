@@ -65,7 +65,7 @@ public with sharing class RFPController {
         List<Extraction_Result__c> results = [
             SELECT Id, Field_Label__c, Extracted_Value__c, Accepted_Value__c,
                    Confidence_Score__c, Citation__c, Review_Status__c, Sort_Order__c,
-                   Target_Field_API_Name__c, Category__c,
+                   Target_Field_API_Name__c, Category__c, Prompt_Source__c,
                    Extraction_Question__r.Is_Required__c,
                    Extraction_Question__r.Confidence_Threshold__c,
                    Extraction_Question__r.Output_Type__c,
@@ -92,6 +92,7 @@ public with sharing class RFPController {
             w.confidenceThreshold = r.Extraction_Question__r?.Confidence_Threshold__c;
             w.outputType = r.Extraction_Question__r?.Output_Type__c;
             w.questionType = r.Extraction_Question__r?.Question_Type__c;
+            w.promptSource = r.Prompt_Source__c;
             wrappers.add(w);
         }
         return wrappers;
@@ -277,5 +278,6 @@ public with sharing class RFPController {
         @AuraEnabled public Decimal confidenceThreshold;
         @AuraEnabled public String outputType;
         @AuraEnabled public String questionType;
+        @AuraEnabled public String promptSource;
     }
 }

@@ -3,7 +3,8 @@ public with sharing class RFPResultParser {
     public static List<Extraction_Result__c> parse(
         Id rfpId,
         String rawResponse,
-        List<Extraction_Question__c> questions
+        List<Extraction_Question__c> questions,
+        String promptSource
     ) {
         Map<String, Extraction_Question__c> questionById = new Map<String, Extraction_Question__c>();
         for (Extraction_Question__c q : questions) {
@@ -47,7 +48,8 @@ public with sharing class RFPResultParser {
                 Confidence_Score__c = confidence,
                 Citation__c = (String) entry.get('citation'),
                 Review_Status__c = 'Pending',
-                Sort_Order__c = q.Sort_Order__c
+                Sort_Order__c = q.Sort_Order__c,
+                Prompt_Source__c = promptSource
             ));
         }
         return results;

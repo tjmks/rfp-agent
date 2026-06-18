@@ -12,7 +12,9 @@ export default class RfpResultField extends LightningElement {
     }
 
     get isReasoning() {
-        return this.result.questionType === 'Reasoning';
+        // promptSource is stamped at extraction time and is the authoritative source —
+        // it remains correct even if the question is later retired or its type changes.
+        return (this.result.promptSource ?? this.result.questionType) === 'Reasoning';
     }
 
     get sourceLabel() {
