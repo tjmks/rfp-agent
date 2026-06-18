@@ -1,6 +1,6 @@
-# RFP Agent
+# RFP App
 
-A Salesforce application that uses Einstein Generative AI (Prompt Builder) to automatically extract structured data from RFP documents uploaded as Salesforce Files (ContentDocument).
+A Salesforce application that uses Einstein Generative AI (Prompt Builder) to extract structured data and qualitative insights from RFP documents uploaded as Salesforce Files (ContentDocument).
 
 ## Quick Start
 
@@ -87,12 +87,27 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`), both receiving a `
 
 ## Permission Set
 
-`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to all permissionable fields, tab visibility for `RFP__c` and `Extraction_Profile__c`, and access to the Apex classes. Assign this plus the standard **Einstein Generative AI User** permission set to any user who needs to run extractions.
+`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to all permissionable fields, tab visibility for all four custom object tabs, app visibility for `RFP_App`, and access to the Apex classes. Assign this plus the standard **Einstein Generative AI User** permission set to any user who needs to run extractions.
 
 ```bash
 sf org assign permset --name RFP_Agent --target-org <alias>
 sf org assign permset --name EinsteinGPTPromptTemplateUser --target-org <alias>
 ```
+
+## App Home Page & Dashboard
+
+The **RFP App** (`RFP_App`) ships with a home page (`RFP_Agent_Home_Page`) that embeds a classic Salesforce dashboard. The home page is automatically assigned to the app on deploy via `actionOverrides` on the `CustomApplication` — no manual App Builder step needed.
+
+The dashboard (`RFP_Agent_Dashboard`) has three columns:
+
+| Column | Component | Source report |
+|---|---|---|
+| Left | Donut — RFPs by Status | `RFPs_by_Status` |
+| Middle | Donut — RFPs by Extraction Profile | `RFP_By_Profile` |
+| Right | Metric — Total RFPs | `RFPs_by_Status` |
+| Right | Metric — Avg Confidence Score (30d) | `RFP_Confidence_Avg` |
+
+All four reports are in the `RFP Agent Reports` folder and deploy automatically.
 
 ## Record Pages
 
@@ -122,7 +137,9 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 ### What's automated on deploy
 
 - **Record pages** for all four custom objects are automatically activated as the org-wide default via `actionOverrides` on the object metadata.
-- **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically.
+- **App home page** (`RFP_Agent_Home_Page`) is automatically assigned to the `RFP_App` Lightning app via `actionOverrides` on the `CustomApplication`.
+- **Dashboard & reports** (`RFP_Agent_Dashboard` and four reports in `RFP Agent Reports`) deploy automatically and are immediately available on the home page.
+- **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. `Extraction_Question__c` ships with an **All** list view.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
 - **Seed data** — run `./scripts/seed_default_profile.sh <alias>` to create a "Default RFP" profile (`Is_Default__c = true`) with 8 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact, Contact Email, Required Submission Format) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Alternatively, create questions manually using the `rfpQuestionBuilder` component.
