@@ -130,5 +130,9 @@
         <apexClass>RFPExtractionException</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RFPInstallHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
 
 </PermissionSet>

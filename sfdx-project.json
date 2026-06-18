@@ -6,7 +6,8 @@
       "package": "RFP App",
       "versionName": "ver 1.0",
       "versionNumber": "1.0.0.NEXT",
-      "versionDescription": "Initial release"
+      "versionDescription": "Initial release",
+      "postInstallScript": "RFPInstallHandler"
     }
   ],
   "name": "rfp_agent",
@@ -15,6 +16,7 @@
   "sourceApiVersion": "63.0",
   "packageAliases": {
     "RFP App": "0HoHp000000L64mKAC",
-    "RFP App@1.0.0-1": "04tHp000001Cw2wIAC"
+    "RFP App@1.0.0-1": "04tHp000001Cw2wIAC",
+    "RFP App@1.0.0-2": "04tHp000001Cw31IAC"
   }
 }

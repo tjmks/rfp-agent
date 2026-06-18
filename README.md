@@ -9,13 +9,13 @@ A Salesforce application that uses Einstein Generative AI (Prompt Builder) to ex
 Install the latest version directly into any org that has Einstein Generative AI enabled:
 
 ```
-https://login.salesforce.com/packaging/installPackage.apexp?p0=04tHp000001Cw2wIAC
+https://login.salesforce.com/packaging/installPackage.apexp?p0=04tHp000001Cw31IAC
 ```
 
 Or via CLI:
 
 ```bash
-sf package install --package "RFP App@1.0.0-1" --target-org <alias> --wait 10
+sf package install --package "RFP App@1.0.0-2" --target-org <alias> --wait 10
 ```
 
 After installing, assign permission sets and optionally seed the default profile:
