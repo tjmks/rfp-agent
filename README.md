@@ -29,7 +29,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 ## How It Works
 
-1. A user clicks the **New RFP** quick action (`Account.New_RFP` or `Opportunity.New_RFP`) on an Account or Opportunity record. These quick actions are metadata wrappers of type `LightningWebComponent` that render the `rfpUploadAction` LWC in a modal. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job.
+1. A user opens the `rfpUploadAction` component — either via the **New RFP** quick action on an Account or Opportunity record (renders in a modal), or directly from the component placed on a Lightning record page. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job.
 2. The queueable splits the profile's questions by `Question_Type__c` and runs **two passes** over the document:
    - **Extraction** questions → `RFP_Extract_Questions` template (Gemini 3.5 Flash) — strict structured data (dates, contacts, budget).
    - **Reasoning** questions → `RFP_Reason_Questions` template (Opus 4.8) — open-ended analysis (risks, win themes).
@@ -63,7 +63,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 | Component | Where to add | Purpose |
 |---|---|---|
-| `rfpUploadAction` | Rendered inside the `Account.New_RFP` and `Opportunity.New_RFP` quick actions (modal) | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. The component itself is not placed directly on a page; the two quick action metadata files are what surface the "New RFP" button on record pages. |
+| `rfpUploadAction` | Quick actions (`Account.New_RFP`, `Opportunity.New_RFP`) **or** placed directly on any Lightning record page | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. Use the quick actions to surface a modal "New RFP" button on Account/Opportunity pages, or drop the component directly onto any record page (e.g. the RFP page sidebar) for inline access. |
 | `rfpExtractionReview` | RFP__c record page | Main review UI — shows extraction progress, results grouped by category, accept/reject/edit controls, bulk accept, and Finalize |
 | `rfpQuestionBuilder` | Extraction_Profile__c record page | View and edit profile questions; add/delete/reorder via drag-and-drop; set per-question confidence threshold (Extraction questions only), category, type, and output format; overview and edit modes. Also hosts the **Context & Grounding** editor for the profile-level grounding context applied to all prompts |
 | `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question in `rfpQuestionBuilder` |
@@ -130,7 +130,12 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 
 The following steps cannot be automated via Metadata API:
 
-1. **Activate record pages** — Setup → Lightning App Builder → open each of the four pages (RFP Record Page, Extraction Profile Record Page, Extraction Question Record Page, Extraction Result Record Page) → Activate → Assign as Org Default. Page assignment state is not stored in any deployable metadata artifact — activation is always a one-time manual step per org.
+1. **Activate record pages as Org Default** — page assignment is not deployable, so this must be done once per org. The quickest way:
+   1. Open any record of the relevant type (e.g. an Extraction Profile or RFP record).
+   2. Click **Edit Page** (gear icon → Edit Page) to open Lightning App Builder.
+   3. In App Builder, click **Pages** in the top toolbar and select the page you want to activate.
+   4. Click **Activation** → **Assign as Org Default** → Save.
+   5. Repeat for each of the four pages: RFP Record Page, Extraction Profile Record Page, Extraction Question Record Page, Extraction Result Record Page.
 
 ### What's automated on deploy
 
@@ -141,4 +146,6 @@ The following steps cannot be automated via Metadata API:
 
 ## Quick Actions
 
-`Account.New_RFP` and `Opportunity.New_RFP` are `LightningWebComponent`-type quick actions (type `ScreenAction`) that serve as the entry point for RFP creation. They exist solely to surface the **New RFP** button on Account and Opportunity record pages — the actual UI is entirely in the `rfpUploadAction` LWC. Without these quick actions, the component has no way to appear on a record page.
+`Account.New_RFP` and `Opportunity.New_RFP` are `LightningWebComponent`-type quick actions (type `ScreenAction`) that surface a **New RFP** modal button on Account and Opportunity record pages. The actual UI is entirely in the `rfpUploadAction` LWC.
+
+Alternatively, `rfpUploadAction` can be placed directly on any Lightning record page via App Builder — useful for embedding it inline on the RFP page itself or any other page where persistent access is preferred over a modal.
