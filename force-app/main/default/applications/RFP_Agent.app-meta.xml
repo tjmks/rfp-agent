@@ -10,4 +10,6 @@
     <tabs>Extraction_Question__c</tabs>
     <tabs>Extraction_Result__c</tabs>
     <uiType>Lightning</uiType>
+    <formFactors>Large</formFactors>
+    <formFactors>Small</formFactors>
 </CustomApplication>
