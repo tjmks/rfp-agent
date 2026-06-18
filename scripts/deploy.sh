@@ -37,6 +37,11 @@ sf project deploy start \
              "CustomObject:Extraction_Question__c" \
              "CustomObject:Extraction_Result__c" \
              "CustomObject:RFP_Extraction_Complete__e" \
+             "FlexiPage:RFP_Record_Page" \
+             "FlexiPage:Extraction_Profile_Record_Page" \
+             "FlexiPage:Extraction_Question_Record_Page" \
+             "FlexiPage:Extraction_Result_Record_Page" \
+             "FlexiPage:RFP_Agent_Home_Page" \
   --target-org "$TARGET_ORG" \
   --wait 30 \
   --concise
