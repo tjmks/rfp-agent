@@ -1,6 +1,6 @@
 {
-  "orgName": "RFP Agent Dev",
-  "edition": "Developer",
+  "orgName": "RFP App Dev",
+  "edition": "Enterprise",
   "features": ["EnableSetPasswordInApi"],
   "settings": {
     "lightningExperienceSettings": {

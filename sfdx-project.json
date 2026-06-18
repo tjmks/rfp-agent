@@ -3,13 +3,18 @@
     {
       "path": "force-app",
       "default": true,
-      "package": "RFP Agent",
-      "versionName": "ver 0.1",
-      "versionNumber": "0.1.0.NEXT"
+      "package": "RFP App",
+      "versionName": "ver 1.0",
+      "versionNumber": "1.0.0.NEXT",
+      "versionDescription": "Initial release"
     }
   ],
   "name": "rfp_agent",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "63.0"
+  "sourceApiVersion": "63.0",
+  "packageAliases": {
+    "RFP App": "0HoHp000000L64mKAC",
+    "RFP App@1.0.0-1": "04tHp000001Cw2wIAC"
+  }
 }
