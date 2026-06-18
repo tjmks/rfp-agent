@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultLandingTab>RFP__c</defaultLandingTab>
+    <description>RFP document extraction powered by Einstein AI</description>
+    <label>RFP Agent</label>
+    <navType>Standard</navType>
+    <tabs>standard-home</tabs>
+    <tabs>RFP__c</tabs>
+    <tabs>Extraction_Profile__c</tabs>
+    <tabs>Extraction_Question__c</tabs>
+    <tabs>Extraction_Result__c</tabs>
+    <uiType>Lightning</uiType>
+</CustomApplication>
