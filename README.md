@@ -19,17 +19,17 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 **1 manual step after deploy** (cannot be automated via the Metadata API):
 
-1. **Activate the 4 record pages as Org Default** — Setup → Lightning App Builder → open each page → Activate → Assign as Org Default:
-   - RFP Record Page
-   - Extraction Profile Record Page
-   - Extraction Question Record Page
-   - Extraction Result Record Page
+1. **Activate the record pages as Org Default** — Setup → Lightning App Builder → open each page → Activate → Assign as Org Default:
+   - RFP Record Page (recommended)
+   - Extraction Profile Record Page (recommended)
+   - Extraction Question Record Page (optional)
+   - Extraction Result Record Page (optional)
 
 ---
 
 ## How It Works
 
-1. A user opens the `rfpUploadAction` component — either via the **New RFP** quick action on an Account or Opportunity record (renders in a modal), or directly from the component placed on a Lightning record page. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job.
+1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction automatically when Email-to-Case creates a Case with a PDF attachment.
 2. The queueable splits the profile's questions by `Question_Type__c` and runs **two passes** over the document:
    - **Extraction** questions → `RFP_Extract_Questions` template (Gemini 3.5 Flash) — strict structured data (dates, contacts, budget).
    - **Reasoning** questions → `RFP_Reason_Questions` template (Opus 4.8) — open-ended analysis (risks, win themes).
@@ -54,6 +54,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 | Class | Purpose |
 |---|---|
 | `RFPController` | `@AuraEnabled` methods for LWC — load RFP, profiles, results; trigger extraction; bulk accept |
+| `RFPExtractionAction` | `@InvocableMethod` entry point for Flow and Process Builder — same pipeline as the LWC; accepts `caseId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
 | `RFPResultParser` | Parses and validates the LLM JSON response into `Extraction_Result__c` records |
 | `RFPFinalizationService` | Rolls up confidence, updates `RFP__c` status, fires the platform event |
@@ -63,7 +64,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 | Component | Where to add | Purpose |
 |---|---|---|
-| `rfpUploadAction` | Quick actions (`Account.New_RFP`, `Opportunity.New_RFP`) **or** placed directly on any Lightning record page | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. Use the quick actions to surface a modal "New RFP" button on Account/Opportunity pages, or drop the component directly onto any record page (e.g. the RFP page sidebar) for inline access. |
+| `rfpUploadAction` | Any Lightning record page via App Builder | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. Drop it directly onto any record page (e.g. the RFP page sidebar, Account page, Opportunity page) for inline access. |
 | `rfpExtractionReview` | RFP__c record page | Main review UI — shows extraction progress, results grouped by category, accept/reject/edit controls, bulk accept, and Finalize |
 | `rfpQuestionBuilder` | Extraction_Profile__c record page | View and edit profile questions; add/delete/reorder via drag-and-drop; set per-question confidence threshold (Extraction questions only), category, type, and output format; overview and edit modes. Also hosts the **Context & Grounding** editor for the profile-level grounding context applied to all prompts |
 | `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question in `rfpQuestionBuilder` |
@@ -107,7 +108,7 @@ All four custom objects ship with Lightning record pages. After deploy, activate
 
 | Page | Layout | Key components |
 |---|---|---|
-| **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar tabs: Activity Timeline / Upload (`rfpUploadAction`) |
+| **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar: `rfpUploadAction` for re-running or uploading a new version. |
 | **Extraction Profile** | Header + two column | Tabs: Details / Configuration (`rfpQuestionBuilder`) / Related (Extraction Questions, RFPs using this profile) |
 | **Extraction Question** | Header + two column | Tabs: Details / Results (Extraction Results for this question across all RFPs) |
 | **Extraction Result** | Header + two column | Tabs: Details (no child objects — leaf node) |
@@ -141,11 +142,30 @@ The following steps cannot be automated via Metadata API:
 
 - **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
-- **Quick actions** (`Account.New_RFP`, `Opportunity.New_RFP`) deploy automatically but must be added to the Account and Opportunity page layouts or action bars manually.
+- **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
 - **Seed data** — run `./scripts/seed_default_profile.sh <alias>` to create a "Default RFP" profile (`Is_Default__c = true`) with 8 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact, Contact Email, Required Submission Format) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Alternatively, create questions manually using the `rfpQuestionBuilder` component.
 
-## Quick Actions
+## Email-to-Case Auto Extraction Flow
 
-`Account.New_RFP` and `Opportunity.New_RFP` are `LightningWebComponent`-type quick actions (type `ScreenAction`) that surface a **New RFP** modal button on Account and Opportunity record pages. The actual UI is entirely in the `rfpUploadAction` LWC.
+`RFP_Email_Case_Auto_Extraction` is a record-triggered flow that automatically starts extraction when Email-to-Case creates a Case. It ships as **Draft** — you must activate it in Setup → Flows if you want this behaviour.
 
-Alternatively, `rfpUploadAction` can be placed directly on any Lightning record page via App Builder — useful for embedding it inline on the RFP page itself or any other page where persistent access is preferred over a modal.
+**What it does:**
+1. Triggers after a Case is created with `Origin = Email` (async after commit, so all email attachments are already linked).
+2. Calls the `RFPExtractionAction` invocable class with the Case ID and Account ID.
+3. The class finds the **first PDF** attached to the Case, resolves the **default active Extraction Profile**, creates an `RFP__c` record, and enqueues the extraction job.
+
+**To activate:** Setup → Flows → *RFP Email Case Auto Extraction* → Activate.
+
+**To customise:** Open the flow in Flow Builder and add Decision elements before the action call if you want to filter by Case fields (e.g. only certain queues, record types, or subject keywords). You can also pass an explicit `contentDocumentId` or `extractionProfileId` to the action if you need a specific file or profile rather than auto-discovery.
+
+**Invocable action inputs** (`RFPExtractionAction`):
+
+| Input | Type | Required | Description |
+|---|---|---|---|
+| `caseId` | Id | — | When `contentDocumentId` is omitted, searches for the first PDF attached to this Case |
+| `contentDocumentId` | Id | — | Explicit PDF to extract from; overrides auto-discovery |
+| `extractionProfileId` | Id | — | Extraction profile to use; defaults to the active default profile |
+| `accountId` | Id | — | Account to link to the created RFP |
+| `opportunityId` | Id | — | Opportunity to link to the created RFP |
+
+The action returns an `rfpId` output. It throws a descriptive `RFPExtractionException` if no PDF can be found or no active default profile exists — the flow will fault with that message, surfacing the issue rather than silently dropping the work.

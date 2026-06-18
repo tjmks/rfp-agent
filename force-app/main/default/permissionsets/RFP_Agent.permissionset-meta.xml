@@ -104,6 +104,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>RFPExtractionAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>RFPExtractionQueueable</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -113,6 +117,10 @@
     </classAccesses>
     <classAccesses>
         <apexClass>RFPFinalizationService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RFPExtractionException</apexClass>
         <enabled>true</enabled>
     </classAccesses>
 
