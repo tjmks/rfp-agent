@@ -80,6 +80,8 @@
     <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Is_Default__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Grounding_Context__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Is_Active__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Extraction_Template__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>true</editable><field>Extraction_Profile__c.Reasoning_Template__c</field><readable>true</readable></fieldPermissions>
 
     <!-- Field permissions: Extraction_Question__c (Output_Type__c, Extraction_Profile__c are required fields → implicit access, not listed) -->
     <fieldPermissions><editable>true</editable><field>Extraction_Question__c.Confidence_Threshold__c</field><readable>true</readable></fieldPermissions>
