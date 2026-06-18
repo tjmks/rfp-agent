@@ -12,9 +12,7 @@
                 onchange={handleGroundingChange}
                 disabled={groundingSaving}>
             </lightning-textarea>
-            <template if:true={groundingSavedLabel}>
-                <span class="grounding-saved-label">{groundingSavedLabel}</span>
-            </template>
+            <span class={groundingStatusClass}>{groundingStatusText}</span>
         </div>
     </lightning-card>
 

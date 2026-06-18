@@ -242,11 +242,15 @@
     margin: 0.5rem 0 0;
 }
 
-.grounding-saved-label {
+.grounding-status {
     display: block;
     font-size: 0.75rem;
     color: #706e6b;
     margin-top: 0.25rem;
+}
+
+.grounding-status_saved {
+    color: #2e844a;
 }
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */

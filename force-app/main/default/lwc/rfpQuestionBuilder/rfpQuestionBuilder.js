@@ -164,6 +164,16 @@ export default class RfpQuestionBuilder extends LightningElement {
         return this.totalCount > 0;
     }
 
+    get groundingStatusText() {
+        if (this.groundingSaving) return 'Saving…';
+        if (this.groundingSavedLabel) return this.groundingSavedLabel;
+        return 'Auto-saves as you type';
+    }
+
+    get groundingStatusClass() {
+        return `grounding-status${this.groundingSavedLabel ? ' grounding-status_saved' : ''}`;
+    }
+
     // ── Categories ─────────────────────────────────────────────────────────
 
     mergeCategories(values) {
@@ -309,7 +319,7 @@ export default class RfpQuestionBuilder extends LightningElement {
                     Grounding_Context__c: this.groundingContext
                 }
             });
-            this.groundingSavedLabel = '• Saved';
+            this.groundingSavedLabel = '✓ Saved';
             // eslint-disable-next-line @lwc/lwc/no-async-operation
             setTimeout(() => { this.groundingSavedLabel = null; }, 2000);
         } catch (e) {
