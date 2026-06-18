@@ -235,9 +235,9 @@
                                             Category: <strong>{row.category}</strong> — drag to a different section to reassign
                                         </p>
 
-                                        <!-- Row 1: Question Type | Output -->
+                                        <!-- Row 1: Question Type | Output | Confidence (Extraction only) -->
                                         <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_x-small">
-                                            <div class="slds-col slds-size_1-of-2">
+                                            <div class={row.typeColClass}>
                                                 <lightning-combobox
                                                     data-id={row.id}
                                                     data-field="questionType"
@@ -249,7 +249,7 @@
                                                     disabled={isBusy}>
                                                 </lightning-combobox>
                                             </div>
-                                            <div class="slds-col slds-size_1-of-2">
+                                            <div class={row.typeColClass}>
                                                 <lightning-combobox
                                                     data-id={row.id}
                                                     data-field="outputType"
@@ -261,12 +261,8 @@
                                                     disabled={isBusy}>
                                                 </lightning-combobox>
                                             </div>
-                                        </div>
-
-                                        <!-- Row 2: Confidence (Extraction only) -->
-                                        <template if:false={row.isReasoning}>
-                                            <div class="slds-grid slds-gutters slds-m-bottom_x-small">
-                                                <div class="slds-col slds-size_1-of-2">
+                                            <template if:false={row.isReasoning}>
+                                                <div class="slds-col slds-size_1-of-3">
                                                     <lightning-input
                                                         type="number"
                                                         data-id={row.id}
@@ -281,8 +277,8 @@
                                                         disabled={isBusy}>
                                                     </lightning-input>
                                                 </div>
-                                            </div>
-                                        </template>
+                                            </template>
+                                        </div>
 
                                         <!-- Extraction hint disclosure -->
                                         <div class="slds-m-bottom_x-small">

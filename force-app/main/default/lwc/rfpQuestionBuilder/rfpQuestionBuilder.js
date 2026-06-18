@@ -82,6 +82,7 @@ function decorate(row) {
         !row.showHint && hintIsSet ? ' hint-disclosure_set' : ''
     }`;
     const isReasoning = row.questionType === 'Reasoning';
+    const typeColClass = isReasoning ? 'slds-col slds-size_1-of-2' : 'slds-col slds-size_1-of-3';
 
     const metaLine1 = `${row.questionType} · ${row.outputType}`;
     const metaLine1Class = `acc-meta-line acc-meta-line_type-${row.questionType.toLowerCase()}`;
@@ -91,7 +92,7 @@ function decorate(row) {
     const metaLine2 = line2Parts.join(' · ');
     const metaLine2Class = `acc-meta-line acc-meta-line_sub${row.isRequired ? ' acc-meta-line_required' : ''}`;
 
-    return { ...row, rowClass, chevronIcon, chevronTitle, hintIcon, hintLabel, hintDisclosureClass, isReasoning, metaLine1, metaLine1Class, metaLine2, metaLine2Class };
+    return { ...row, rowClass, chevronIcon, chevronTitle, hintIcon, hintLabel, hintDisclosureClass, isReasoning, typeColClass, metaLine1, metaLine1Class, metaLine2, metaLine2Class };
 }
 
 export default class RfpQuestionBuilder extends LightningElement {
