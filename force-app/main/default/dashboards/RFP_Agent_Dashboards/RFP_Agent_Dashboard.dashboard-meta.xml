@@ -69,6 +69,22 @@
             <title>Total RFPs</title>
             <useReportChart>false</useReportChart>
         </components>
+        <components>
+            <componentType>Metric</componentType>
+            <drillEnabled>false</drillEnabled>
+            <drillToDetailEnabled>true</drillToDetailEnabled>
+            <footer>last 30 days</footer>
+            <header></header>
+            <indicatorBreakpoint1>0.0</indicatorBreakpoint1>
+            <indicatorBreakpoint2>0.0</indicatorBreakpoint2>
+            <indicatorHighColor>#54C254</indicatorHighColor>
+            <indicatorLowColor>#C25454</indicatorLowColor>
+            <indicatorMiddleColor>#C2C254</indicatorMiddleColor>
+            <metricLabel>Avg Confidence</metricLabel>
+            <report>RFP_Agent_Reports/RFP_Confidence_Avg</report>
+            <title>Avg Confidence Score</title>
+            <useReportChart>false</useReportChart>
+        </components>
     </rightSection>
     <textColor>#000000</textColor>
     <title>RFP Agent Dashboard</title>
