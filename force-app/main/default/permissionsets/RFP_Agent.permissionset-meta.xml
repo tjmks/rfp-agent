@@ -3,6 +3,12 @@
     <label>RFP Agent</label>
     <description>Grants access to all RFP Agent objects, fields, Apex classes, and LWC components. Also requires the Einstein Generative AI User permission set for AI processing.</description>
 
+    <!-- App visibility -->
+    <applicationVisibilities>
+        <application>RFP_Agent</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+
     <!-- Tab visibility -->
     <tabSettings>
         <tab>RFP__c</tab>
