@@ -8,6 +8,18 @@
         <displayFormat>ER-{00000}</displayFormat>
         <startingNumber>1</startingNumber>
     </nameField>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <content>Extraction_Result_Record_Page</content>
+        <formFactor>Large</formFactor>
+        <type>Flexipage</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <content>Extraction_Result_Record_Page</content>
+        <formFactor>Small</formFactor>
+        <type>Flexipage</type>
+    </actionOverrides>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>ControlledByParent</sharingModel>
     <enableActivities>false</enableActivities>

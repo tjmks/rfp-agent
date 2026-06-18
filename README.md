@@ -15,15 +15,7 @@ cd rfp-agent
 ./scripts/deploy.sh <your-org-alias>
 ```
 
-This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile.
-
-**1 manual step after deploy** (cannot be automated via the Metadata API):
-
-1. **Activate the record pages as Org Default** — Setup → Lightning App Builder → open each page → Activate → Assign as Org Default:
-   - RFP Record Page (recommended)
-   - Extraction Profile Record Page (recommended)
-   - Extraction Question Record Page (optional)
-   - Extraction Result Record Page (optional)
+This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile. All four Lightning record pages are automatically activated as the org default on deploy — no manual Lightning App Builder step needed.
 
 ---
 
@@ -104,7 +96,7 @@ sf org assign permset --name EinsteinGPTPromptTemplateUser --target-org <alias>
 
 ## Record Pages
 
-All four custom objects ship with Lightning record pages. After deploy, activate each one as the org default in Lightning App Builder (Setup → Lightning App Builder → open the page → Activate → Org Default).
+All four custom objects ship with Lightning record pages. Each page is automatically activated as the org-wide default on deploy via `actionOverrides` in the object metadata — no manual Lightning App Builder step needed.
 
 | Page | Layout | Key components |
 |---|---|---|
@@ -127,19 +119,9 @@ Related lists are defined in the page layout XML using `ChildObject__c.LookupFie
 
 The deploy script runs two passes: the `RFP__c` object first (required so `enableFeeds=true` is live before the layout validator runs), then the full source.
 
-### Post-deploy manual steps
-
-The following steps cannot be automated via Metadata API:
-
-1. **Activate record pages as Org Default** — page assignment is not deployable, so this must be done once per org. The quickest way:
-   1. Open any record of the relevant type (e.g. an Extraction Profile or RFP record).
-   2. Click **Edit Page** (gear icon → Edit Page) to open Lightning App Builder.
-   3. In App Builder, click **Pages** in the top toolbar and select the page you want to activate.
-   4. Click **Activation** → **Assign as Org Default** → Save.
-   5. Repeat for each of the four pages: RFP Record Page, Extraction Profile Record Page, Extraction Question Record Page, Extraction Result Record Page.
-
 ### What's automated on deploy
 
+- **Record pages** for all four custom objects are automatically activated as the org-wide default via `actionOverrides` on the object metadata.
 - **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
