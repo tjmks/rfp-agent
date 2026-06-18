@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Extraction_Template__c</fullName>
+    <label>Extraction Template</label>
+    <description>Prompt Builder template API name to use for Extraction questions. Leave blank to use the org default (RFP_Extract_Questions).</description>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+    <externalId>false</externalId>
+    <unique>false</unique>
+</CustomField>

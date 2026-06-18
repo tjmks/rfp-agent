@@ -19,10 +19,11 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
         try {
             RFP__c rfp = [
                 SELECT Id, Name, Source_Document_Id__c, Extraction_Profile__c,
-                       Extraction_Profile__r.Grounding_Context__c
+                       Extraction_Profile__r.Grounding_Context__c,
+                       Extraction_Profile__r.Extraction_Template__c,
+                       Extraction_Profile__r.Reasoning_Template__c
                 FROM RFP__c
                 WHERE Id = :rfpId
-
                 LIMIT 1
             ];
 
@@ -59,16 +60,23 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
             // rollup is restricted to extraction-pass question Ids.
             Set<Id> extractionQuestionIds = new Set<Id>();
 
+            String extractionTemplate = String.isNotBlank(rfp.Extraction_Profile__r?.Extraction_Template__c)
+                ? rfp.Extraction_Profile__r.Extraction_Template__c
+                : EXTRACTION_TEMPLATE;
+            String reasoningTemplate = String.isNotBlank(rfp.Extraction_Profile__r?.Reasoning_Template__c)
+                ? rfp.Extraction_Profile__r.Reasoning_Template__c
+                : REASONING_TEMPLATE;
+
             if (!extractionQuestions.isEmpty()) {
                 for (Extraction_Question__c q : extractionQuestions) {
                     extractionQuestionIds.add(q.Id);
                 }
-                String response = invokeTemplate(EXTRACTION_TEMPLATE, rfp, serializeQuestions(extractionQuestions), groundingContext, EXTRACTION_GROUNDING_HEADER);
+                String response = invokeTemplate(extractionTemplate, rfp, serializeQuestions(extractionQuestions), groundingContext, EXTRACTION_GROUNDING_HEADER);
                 allResults.addAll(RFPResultParser.parse(rfpId, response, extractionQuestions, 'Extraction'));
             }
 
             if (!reasoningQuestions.isEmpty()) {
-                String response = invokeTemplate(REASONING_TEMPLATE, rfp, serializeQuestions(reasoningQuestions), groundingContext, REASONING_GROUNDING_HEADER);
+                String response = invokeTemplate(reasoningTemplate, rfp, serializeQuestions(reasoningQuestions), groundingContext, REASONING_GROUNDING_HEADER);
                 allResults.addAll(RFPResultParser.parse(rfpId, response, reasoningQuestions, 'Reasoning'));
             }
 
