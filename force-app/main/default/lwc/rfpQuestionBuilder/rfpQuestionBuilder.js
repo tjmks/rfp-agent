@@ -95,7 +95,7 @@ export default class RfpQuestionBuilder extends LightningElement {
     @track groundingContext = '';
     @track groundingSaving = false;
     @track groundingSavedLabel = null;
-    _groundingTimer = null;
+    _groundingDirty = false;
 
     typeOptions = TYPE_OPTIONS;
     questionTypeOptions = QUESTION_TYPE_OPTIONS;
@@ -167,7 +167,7 @@ export default class RfpQuestionBuilder extends LightningElement {
     get groundingStatusText() {
         if (this.groundingSaving) return 'Saving…';
         if (this.groundingSavedLabel) return this.groundingSavedLabel;
-        return 'Auto-saves as you type';
+        return '';
     }
 
     get groundingStatusClass() {
@@ -302,11 +302,15 @@ export default class RfpQuestionBuilder extends LightningElement {
 
     handleGroundingChange(event) {
         this.groundingContext = event.target.value;
-        clearTimeout(this._groundingTimer);
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        this._groundingTimer = setTimeout(() => {
+        this._groundingDirty = true;
+        this.groundingSavedLabel = null;
+    }
+
+    handleGroundingBlur() {
+        if (this._groundingDirty) {
+            this._groundingDirty = false;
             this._saveGrounding();
-        }, 800);
+        }
     }
 
     async _saveGrounding() {

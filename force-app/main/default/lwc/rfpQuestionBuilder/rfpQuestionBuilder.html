@@ -10,7 +10,7 @@
                 value={groundingContext}
                 placeholder="e.g. Acme Corp is a mid-market SaaS vendor specialising in logistics automation. We serve enterprise customers in North America and do not offer hardware or professional services…"
                 onchange={handleGroundingChange}
-                disabled={groundingSaving}>
+                onblur={handleGroundingBlur}>
             </lightning-textarea>
             <span class={groundingStatusClass}>{groundingStatusText}</span>
         </div>
