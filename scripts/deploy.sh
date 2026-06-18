@@ -65,9 +65,16 @@ sf org assign permset \
   --target-org "$TARGET_ORG" || echo "  (already assigned — skipping)"
 
 echo "→ Seeding default extraction profile"
-sf apex run \
+_seed_log=$(mktemp)
+if sf apex run \
   --file "$(dirname "$0")/seed_default_profile.apex" \
-  --target-org "$TARGET_ORG"
+  --target-org "$TARGET_ORG" > "$_seed_log" 2>&1; then
+  echo "  ✓ Default profile seeded"
+else
+  echo "  ✗ Seed failed:"
+  cat "$_seed_log"
+fi
+rm -f "$_seed_log"
 
 echo ""
 echo "✓ Done."
