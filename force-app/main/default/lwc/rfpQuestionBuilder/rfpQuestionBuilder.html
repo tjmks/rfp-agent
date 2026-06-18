@@ -1,28 +1,20 @@
 <template>
     <lightning-card title="Context & Grounding" icon-name="utility:knowledge_base" class="slds-m-bottom_small">
-        
         <div class="slds-card__body slds-card__body_inner">
             <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                Describe your company — industry, offerings, strengths, and constraints — so the AI can ground every answer in who you are.
-                Applied to all prompts in this profile.
+                Describe your company to ground Reasoning answers in who you are. Not applied to Extraction questions — steer those via each question's prompt text.
             </p>
-            <lightning-record-edit-form
-                object-api-name="Extraction_Profile__c"
-                record-id={recordId}
-                onsuccess={handleGroundingSaved}>
-                <lightning-messages></lightning-messages>
-                <lightning-input-field
-                    field-name="Grounding_Context__c"
-                    variant="label-hidden">
-                </lightning-input-field>
-                <div class="slds-text-align_right slds-m-top_x-small">
-                    <lightning-button
-                        type="submit"
-                        variant="brand"
-                        label="Save Context">
-                    </lightning-button>
-                </div>
-            </lightning-record-edit-form>
+            <lightning-textarea
+                label="Grounding Context"
+                variant="label-hidden"
+                value={groundingContext}
+                placeholder="e.g. Acme Corp is a mid-market SaaS vendor specialising in logistics automation. We serve enterprise customers in North America and do not offer hardware or professional services…"
+                onchange={handleGroundingChange}
+                disabled={groundingSaving}>
+            </lightning-textarea>
+            <template if:true={groundingSavedLabel}>
+                <span class="grounding-saved-label">{groundingSavedLabel}</span>
+            </template>
         </div>
     </lightning-card>
 
@@ -30,343 +22,352 @@
         <span slot="title" class="title-row">
             <span>Prompts to Answer</span>
             <span class="summary-chip">{summaryLabel}</span>
-            <lightning-input
-                type="toggle"
-                label={modeToggleLabel}
-                message-toggle-active=""
-                message-toggle-inactive=""
-                checked={editMode}
-                onchange={toggleOverviewMode}
-                class="overview-toggle title-toggle">
-            </lightning-input>
         </span>
         <div slot="actions">
-            <template if:false={overviewMode}>
-                <lightning-button
-                    label="Add Question"
-                    icon-name="utility:add"
-                    onclick={addQuestion}
-                    disabled={isBusy}>
-                </lightning-button>
-            </template>
+            <lightning-button
+                label="Collapse All"
+                variant="base"
+                onclick={handleCollapseAll}
+                disabled={allCollapsed}
+                class="slds-m-right_x-small">
+            </lightning-button>
+            <lightning-button
+                label="Expand All"
+                variant="base"
+                onclick={handleExpandAll}
+                disabled={allExpanded}
+                class="slds-m-right_x-small">
+            </lightning-button>
+            <lightning-button
+                label="Add Category"
+                icon-name="utility:add"
+                onclick={handleAddCategory}
+                disabled={isBusy}>
+            </lightning-button>
         </div>
 
         <div class="slds-card__body slds-card__body_inner">
 
             <template if:false={hasRows}>
                 <div class="empty-state slds-align_absolute-center slds-text-color_weak slds-p-vertical_large">
-                    No questions yet. Click <strong class="slds-m-horizontal_xx-small">Add Question</strong> to get started.
+                    No questions yet. Use <strong class="slds-m-horizontal_xx-small">Add Category</strong> or click <strong class="slds-m-horizontal_xx-small">New Question</strong> within a category to get started.
                 </div>
             </template>
 
-            <!-- Overview mode: collapsed rows grouped by category -->
-            <template if:true={overviewMode}>
-                <template for:each={overviewGroups} for:item="group">
-                    <div key={group.key} class="overview-group">
-                        <div class="overview-category-header">{group.category}</div>
-                        <template for:each={group.items} for:item="item">
-                            <div
-                                key={item.id}
-                                data-id={item.id}
-                                class="overview-row">
-                                <span class="overview-label">{item.questionLabel}</span>
-                                <span class="overview-prompt" title={item.questionText}>{item.questionText}</span>
-                                <lightning-button-icon
-                                    icon-name="utility:close"
-                                    variant="border-filled"
-                                    size="small"
-                                    alternative-text="Deactivate"
-                                    title="Deactivate"
-                                    data-id={item.id}
-                                    onclick={deleteRow}
-                                    disabled={isBusy}
-                                    class="overview-deactivate">
-                                </lightning-button-icon>
-                            </div>
-                        </template>
-                    </div>
-                </template>
+            <!-- Add category inline creation bar -->
+            <template if:true={isAddingCategory}>
+                <div class="cat-new-row">
+                    <span class="cat-new-label">New category:</span>
+                    <lightning-input
+                        type="text"
+                        label="New category name"
+                        variant="label-hidden"
+                        value={pendingNewCategory}
+                        placeholder="e.g. Legal"
+                        max-length="255"
+                        onchange={handleNewCategoryNameInput}
+                        oncommit={confirmAddCategory}
+                        disabled={isBusy}
+                        class="cat-new-input">
+                    </lightning-input>
+                    <lightning-button-icon
+                        icon-name="utility:check"
+                        variant="brand"
+                        size="small"
+                        alternative-text="Create category"
+                        title="Create category"
+                        onclick={confirmAddCategory}
+                        disabled={isBusy}>
+                    </lightning-button-icon>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        variant="bare"
+                        size="small"
+                        alternative-text="Cancel"
+                        title="Cancel"
+                        onclick={cancelAddCategory}
+                        disabled={isBusy}>
+                    </lightning-button-icon>
+                </div>
             </template>
 
-            <!-- Detailed mode: full editable cards -->
-            <template if:false={overviewMode}>
-            <template for:each={visibleRows} for:item="row">
-                <div
-                    key={row.id}
-                    data-id={row.id}
-                    class={row.cardClass}
-                    draggable="true"
-                    ondragstart={onDragStart}
-                    ondragend={onDragEnd}
-                    ondragover={onDragOver}
-                    ondragenter={onDragEnter}
-                    ondragleave={onDragLeave}
-                    ondrop={onDrop}>
+            <!-- Category-grouped accordion -->
+            <template for:each={categoryGroups} for:item="group">
+                <div key={group.key} class="cat-section">
+                    <div class="cat-header">
+                        <span class="cat-title">{group.category}</span>
+                        <lightning-button-icon
+                            icon-name="utility:add"
+                            variant="border-filled"
+                            size="small"
+                            alternative-text="New Question"
+                            title="New Question"
+                            data-category={group.category}
+                            onclick={handleAddQuestionToCategory}
+                            disabled={isBusy}>
+                        </lightning-button-icon>
+                    </div>
 
-                    <!-- Pending-delete state -->
-                    <template if:true={row.markedForDeletion}>
-                        <div class="slds-grid slds-grid_vertical-align-center slds-gutters_xx-small">
-                            <div class="slds-col slds-grow">
-                                <span class="slds-text-color_weak">
-                                    Question
-                                    <strong class="slds-text-color_default">{row.questionLabel}</strong>
-                                    marked for deactivation. Save to apply.
-                                </span>
-                            </div>
-                            <div class="slds-col slds-no-flex">
-                                <lightning-button
-                                    label="Undo"
-                                    variant="base"
-                                    data-id={row.id}
-                                    onclick={undoDelete}
-                                    disabled={isBusy}>
-                                </lightning-button>
-                            </div>
-                        </div>
-                    </template>
+                    <template for:each={group.items} for:item="row">
+                        <div
+                            key={row.id}
+                            data-id={row.id}
+                            class={row.rowClass}
+                            draggable="true"
+                            ondragstart={onDragStart}
+                            ondragend={onDragEnd}
+                            ondragover={onDragOver}
+                            ondragenter={onDragEnter}
+                            ondragleave={onDragLeave}
+                            ondrop={onDrop}>
 
-                    <!-- Active card body -->
-                    <template if:true={row.showActiveBody}>
-                        <!-- Header row: number, handle, label, category, required, dirty dot -->
-                        <div class="q-card-header slds-grid slds-gutters_xx-small slds-grid_vertical-align-start">
-                            <div class="slds-col slds-no-flex q-number">{row.position}.</div>
-                            <div class="slds-col slds-no-flex q-drag-handle" title="Drag to reorder">
-                                <lightning-icon icon-name="utility:drag_and_drop" size="x-small" alternative-text="Reorder">
-                                </lightning-icon>
-                            </div>
-                            <div class="slds-col slds-grow">
-                                <lightning-input
-                                    class="q-label-input"
-                                    data-id={row.id}
-                                    data-field="questionLabel"
-                                    value={row.questionLabel}
-                                    label="Label"
-                                    field-level-help={helpQuestionLabel}
-                                    placeholder="e.g. Submission Deadline"
-                                    onchange={handleFieldChange}
-                                    disabled={isBusy}>
-                                </lightning-input>
-                            </div>
-                            <div class="slds-col slds-no-flex q-category-header">
-                                <template if:false={row.creatingCategory}>
-                                    <lightning-combobox
-                                        data-id={row.id}
-                                        data-field="category"
-                                        label="Category"
-                                        field-level-help={helpCategory}
-                                        value={row.category}
-                                        options={categoryOptions}
-                                        onchange={handleCategoryChange}
-                                        disabled={isBusy}>
-                                    </lightning-combobox>
-                                </template>
-                                <template if:true={row.creatingCategory}>
-                                    <label class="slds-form-element__label">New category</label>
-                                    <div class="slds-grid slds-gutters_xx-small slds-grid_vertical-align-center">
+                            <!-- Pending-delete state -->
+                            <template if:true={row.markedForDeletion}>
+                                <div class="acc-row acc-row_pending">
+                                    <div class="acc-pending-msg slds-grid slds-grid_vertical-align-center slds-gutters_xx-small">
                                         <div class="slds-col slds-grow">
-                                            <lightning-input
-                                                data-id={row.id}
-                                                type="text"
-                                                variant="label-hidden"
-                                                value={row.newCategoryValue}
-                                                placeholder="e.g. Legal"
-                                                max-length="255"
-                                                autocomplete="off"
-                                                onchange={handleNewCategoryInput}
-                                                oncommit={confirmNewCategory}
-                                                disabled={isBusy}>
-                                            </lightning-input>
+                                            <span class="slds-text-color_weak">
+                                                Question
+                                                <strong class="slds-text-color_default">{row.questionLabel}</strong>
+                                                marked for deactivation. Save to apply.
+                                            </span>
                                         </div>
                                         <div class="slds-col slds-no-flex">
-                                            <lightning-button-icon
-                                                icon-name="utility:check"
-                                                variant="brand"
-                                                size="small"
-                                                alternative-text="Add category"
-                                                title="Add category"
+                                            <lightning-button
+                                                label="Undo"
+                                                variant="base"
                                                 data-id={row.id}
-                                                onclick={confirmNewCategory}
+                                                onclick={undoDelete}
                                                 disabled={isBusy}>
-                                            </lightning-button-icon>
+                                            </lightning-button>
                                         </div>
-                                        <div class="slds-col slds-no-flex">
-                                            <lightning-button-icon
-                                                icon-name="utility:close"
-                                                variant="bare"
-                                                size="small"
-                                                alternative-text="Cancel"
-                                                title="Cancel"
-                                                data-id={row.id}
-                                                onclick={cancelNewCategory}
-                                                disabled={isBusy}>
-                                            </lightning-button-icon>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                            <div class="slds-col slds-no-flex q-required-cell">
-                                <lightning-input
-                                    type="toggle"
-                                    data-id={row.id}
-                                    label="Required"
-                                    field-level-help={helpRequired}
-                                    message-toggle-active=""
-                                    message-toggle-inactive=""
-                                    checked={row.isRequired}
-                                    onchange={handleRequiredChange}
-                                    disabled={isBusy}>
-                                </lightning-input>
-                                <template if:true={row.dirty}>
-                                    <span class="dirty-indicator" title="Unsaved changes">•</span>
-                                </template>
-                            </div>
-                        </div>
-
-                        <!-- Prompt -->
-                        <div class="slds-m-top_x-small">
-                            <lightning-textarea
-                                data-id={row.id}
-                                data-field="questionText"
-                                value={row.questionText}
-                                label="Prompt"
-                                field-level-help={helpQuestionPrompt}
-                                placeholder="What is the deadline for submitting the proposal?"
-                                max-length="32768"
-                                onchange={handleFieldChange}
-                                disabled={isBusy}
-                                class="q-prompt">
-                            </lightning-textarea>
-                        </div>
-
-                        <!-- Type / Output / Confidence -->
-                        <div class="slds-grid slds-gutters slds-m-top_x-small">
-                            <div class="slds-col slds-size_1-of-3">
-                                <lightning-combobox
-                                    data-id={row.id}
-                                    data-field="questionType"
-                                    label="Type"
-                                    field-level-help={helpQuestionType}
-                                    value={row.questionType}
-                                    options={questionTypeOptions}
-                                    onchange={handleFieldChange}
-                                    disabled={isBusy}>
-                                </lightning-combobox>
-                            </div>
-                            <div class="slds-col slds-size_1-of-3">
-                                <lightning-combobox
-                                    data-id={row.id}
-                                    data-field="outputType"
-                                    label="Output"
-                                    field-level-help={helpOutputType}
-                                    value={row.outputType}
-                                    options={typeOptions}
-                                    onchange={handleFieldChange}
-                                    disabled={isBusy}>
-                                </lightning-combobox>
-                            </div>
-                            <template if:false={row.isReasoning}>
-                            <div class="slds-col slds-size_1-of-3">
-                                <lightning-input
-                                    type="number"
-                                    data-id={row.id}
-                                    data-field="confidenceThreshold"
-                                    label="Confidence (%)"
-                                    field-level-help={helpConfidenceThreshold}
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                    value={row.confidenceThreshold}
-                                    onchange={handleFieldChange}
-                                    disabled={isBusy}>
-                                </lightning-input>
-                            </div>
-                            </template>
-                        </div>
-
-                        <!-- Extraction hint disclosure -->
-                        <div class="slds-m-top_small">
-                            <div class="q-hint-toggle-row">
-                                <button
-                                    type="button"
-                                    class={row.hintDisclosureClass}
-                                    data-id={row.id}
-                                    onclick={toggleHint}
-                                    disabled={isBusy}>
-                                    <lightning-icon
-                                        icon-name={row.hintIcon}
-                                        size="xx-small"
-                                        class="slds-m-right_xx-small">
-                                    </lightning-icon>
-                                    {row.hintLabel}
-                                </button>
-                                <lightning-helptext content={helpExtractionHint} class="slds-m-left_xx-small">
-                                </lightning-helptext>
-                            </div>
-
-                            <template if:true={row.showHint}>
-                                <div class="slds-grid slds-gutters_xx-small slds-grid_vertical-align-end slds-m-top_xx-small">
-                                    <div class="slds-col slds-grow">
-                                        <lightning-textarea
-                                            data-id={row.id}
-                                            data-field="extractionHint"
-                                            label="Hint"
-                                            variant="label-hidden"
-                                            value={row.extractionHint}
-                                            placeholder="Additional context to help the AI find this value, e.g. &quot;Look in the timeline section&quot;…"
-                                            max-length="1000"
-                                            onchange={handleFieldChange}
-                                            disabled={isBusy}
-                                            class="q-hint-input">
-                                        </lightning-textarea>
-                                    </div>
-                                    <div class="slds-col slds-no-flex">
-                                        <lightning-button-icon
-                                            icon-name="utility:close"
-                                            variant="bare"
-                                            size="small"
-                                            alternative-text="Remove hint"
-                                            title="Remove hint"
-                                            data-id={row.id}
-                                            onclick={removeHint}
-                                            disabled={isBusy}>
-                                        </lightning-button-icon>
                                     </div>
                                 </div>
                             </template>
-                        </div>
 
-                        <template if:true={row.error}>
-                            <p class="row-error">{row.error}</p>
-                        </template>
+                            <!-- Active row -->
+                            <template if:true={row.showActiveBody}>
 
-                        <!-- Card actions -->
-                        <div class="q-card-actions">
-                            <lightning-button
-                                label="Duplicate"
-                                icon-name="utility:copy"
-                                variant="base"
-                                data-id={row.id}
-                                onclick={duplicateRow}
-                                disabled={isBusy}>
-                            </lightning-button>
-                            <lightning-button
-                                label="Deactivate"
-                                icon-name="utility:delete"
-                                variant="base-destructive"
-                                data-id={row.id}
-                                onclick={deleteRow}
-                                disabled={isBusy}>
-                            </lightning-button>
+                                <!-- Collapsed strip (always visible) -->
+                                <div class="acc-row">
+                                    <div class="acc-drag-handle" title="Drag to reorder">
+                                        <lightning-icon icon-name="utility:drag_and_drop" size="xx-small" alternative-text="Reorder">
+                                        </lightning-icon>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="acc-chevron"
+                                        data-id={row.id}
+                                        onclick={handleToggleExpand}
+                                        title={row.chevronTitle}>
+                                        <lightning-icon
+                                            icon-name={row.chevronIcon}
+                                            size="xx-small"
+                                            alternative-text="Toggle details">
+                                        </lightning-icon>
+                                    </button>
+                                    <div class="acc-col-label">
+                                        <span class="acc-micro-label">Label</span>
+                                        <lightning-input
+                                            data-id={row.id}
+                                            data-field="questionLabel"
+                                            value={row.questionLabel}
+                                            label="Label"
+                                            variant="label-hidden"
+                                            placeholder="Label…"
+                                            onchange={handleFieldChange}
+                                            disabled={isBusy}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="acc-col-prompt">
+                                        <span class="acc-micro-label">Prompt</span>
+                                        <lightning-textarea
+                                            data-id={row.id}
+                                            data-field="questionText"
+                                            value={row.questionText}
+                                            label="Prompt"
+                                            variant="label-hidden"
+                                            placeholder="Prompt…"
+                                            onchange={handleFieldChange}
+                                            disabled={isBusy}
+                                            class="acc-prompt-textarea">
+                                        </lightning-textarea>
+                                    </div>
+                                    <div class="acc-col-meta">
+                                        <span class={row.metaLine1Class}>{row.metaLine1}</span>
+                                        <template if:true={row.metaLine2}>
+                                            <span class={row.metaLine2Class}>{row.metaLine2}</span>
+                                        </template>
+                                    </div>
+                                    <template if:true={row.dirty}>
+                                        <span class="dirty-indicator" title="Unsaved changes">•</span>
+                                    </template>
+                                    <lightning-button-icon
+                                        icon-name="utility:copy"
+                                        variant="border-filled"
+                                        size="small"
+                                        alternative-text="Duplicate"
+                                        title="Duplicate"
+                                        data-id={row.id}
+                                        onclick={duplicateRow}
+                                        disabled={isBusy}
+                                        class="acc-duplicate">
+                                    </lightning-button-icon>
+                                    <lightning-button-icon
+                                        icon-name="utility:close"
+                                        variant="border-filled"
+                                        size="small"
+                                        alternative-text="Deactivate"
+                                        title="Deactivate"
+                                        data-id={row.id}
+                                        onclick={deleteRow}
+                                        disabled={isBusy}
+                                        class="acc-deactivate">
+                                    </lightning-button-icon>
+                                </div>
+
+                                <!-- Expanded details -->
+                                <template if:true={row.expanded}>
+                                    <div class="acc-expanded">
+
+                                        <!-- Category hint -->
+                                        <p class="acc-cat-hint slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                                            Category: <strong>{row.category}</strong> — drag to a different section to reassign
+                                        </p>
+
+                                        <!-- Row 1: Question Type | Output -->
+                                        <div class="slds-grid slds-gutters slds-grid_vertical-align-end slds-m-bottom_x-small">
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-combobox
+                                                    data-id={row.id}
+                                                    data-field="questionType"
+                                                    label="Question Type"
+                                                    field-level-help={helpQuestionType}
+                                                    value={row.questionType}
+                                                    options={questionTypeOptions}
+                                                    onchange={handleFieldChange}
+                                                    disabled={isBusy}>
+                                                </lightning-combobox>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-combobox
+                                                    data-id={row.id}
+                                                    data-field="outputType"
+                                                    label="Output"
+                                                    field-level-help={helpOutputType}
+                                                    value={row.outputType}
+                                                    options={typeOptions}
+                                                    onchange={handleFieldChange}
+                                                    disabled={isBusy}>
+                                                </lightning-combobox>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 2: Confidence (Extraction only) -->
+                                        <template if:false={row.isReasoning}>
+                                            <div class="slds-grid slds-gutters slds-m-bottom_x-small">
+                                                <div class="slds-col slds-size_1-of-2">
+                                                    <lightning-input
+                                                        type="number"
+                                                        data-id={row.id}
+                                                        data-field="confidenceThreshold"
+                                                        label="Confidence (%)"
+                                                        field-level-help={helpConfidenceThreshold}
+                                                        min="0"
+                                                        max="100"
+                                                        step="1"
+                                                        value={row.confidenceThreshold}
+                                                        onchange={handleFieldChange}
+                                                        disabled={isBusy}>
+                                                    </lightning-input>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Extraction hint disclosure -->
+                                        <div class="slds-m-bottom_x-small">
+                                            <div class="q-hint-toggle-row">
+                                                <button
+                                                    type="button"
+                                                    class={row.hintDisclosureClass}
+                                                    data-id={row.id}
+                                                    onclick={toggleHint}
+                                                    disabled={isBusy}>
+                                                    <lightning-icon
+                                                        icon-name={row.hintIcon}
+                                                        size="xx-small"
+                                                        class="slds-m-right_xx-small">
+                                                    </lightning-icon>
+                                                    {row.hintLabel}
+                                                </button>
+                                                <lightning-helptext content={helpExtractionHint} class="slds-m-left_xx-small">
+                                                </lightning-helptext>
+                                            </div>
+
+                                            <template if:true={row.showHint}>
+                                                <div class="slds-grid slds-gutters_xx-small slds-grid_vertical-align-end slds-m-top_xx-small">
+                                                    <div class="slds-col slds-grow">
+                                                        <lightning-textarea
+                                                            data-id={row.id}
+                                                            data-field="extractionHint"
+                                                            label="Hint"
+                                                            variant="label-hidden"
+                                                            value={row.extractionHint}
+                                                            placeholder="Additional context to help the AI find this value, e.g. &quot;Look in the timeline section&quot;…"
+                                                            max-length="1000"
+                                                            onchange={handleFieldChange}
+                                                            disabled={isBusy}
+                                                            class="q-hint-input">
+                                                        </lightning-textarea>
+                                                    </div>
+                                                    <div class="slds-col slds-no-flex">
+                                                        <lightning-button-icon
+                                                            icon-name="utility:close"
+                                                            variant="bare"
+                                                            size="small"
+                                                            alternative-text="Remove hint"
+                                                            title="Remove hint"
+                                                            data-id={row.id}
+                                                            onclick={removeHint}
+                                                            disabled={isBusy}>
+                                                        </lightning-button-icon>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <template if:true={row.error}>
+                                            <p class="row-error">{row.error}</p>
+                                        </template>
+
+                                        <!-- Expanded actions -->
+                                        <div class="acc-expanded-actions">
+                                            <lightning-input
+                                                type="toggle"
+                                                data-id={row.id}
+                                                label="Required"
+                                                field-level-help={helpRequired}
+                                                message-toggle-active=""
+                                                message-toggle-inactive=""
+                                                checked={row.isRequired}
+                                                onchange={handleRequiredChange}
+                                                disabled={isBusy}>
+                                            </lightning-input>
+                                        </div>
+
+                                    </div>
+                                </template>
+
+                            </template>
                         </div>
                     </template>
                 </div>
-            </template>
             </template>
 
             <!-- Footer -->
             <div class="builder-footer slds-grid slds-grid_vertical-align-center slds-m-top_small">
                 <div class="slds-col">
-                    <template if:false={overviewMode}>
+                    <template if:false={hasRows}>
                         <lightning-button
                             label="Add Question"
                             icon-name="utility:add"

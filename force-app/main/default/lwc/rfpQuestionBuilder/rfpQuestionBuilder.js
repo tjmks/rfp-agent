@@ -1,6 +1,7 @@
 import { LightningElement, api, wire, track } from 'lwc';
-import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
+import { getRecord, updateRecord, getFieldValue, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import GROUNDING_CONTEXT_FIELD from '@salesforce/schema/Extraction_Profile__c.Grounding_Context__c';
 import getExistingQuestions from '@salesforce/apex/RFPController.getExistingQuestions';
 import createQuestions from '@salesforce/apex/RFPController.createQuestions';
 import updateQuestions from '@salesforce/apex/RFPController.updateQuestions';
@@ -21,10 +22,7 @@ const QUESTION_TYPE_OPTIONS = [
     { label: 'Reasoning', value: 'Reasoning' }
 ];
 
-// Starter categories. The live list is dynamic — users add custom categories
-// inline, and any categories already saved on existing questions are merged in.
 const DEFAULT_CATEGORIES = ['General', 'Commercial', 'Technical', 'Compliance'];
-const NEW_CATEGORY_SENTINEL = '__new_category__';
 
 const HELP = {
     questionLabel: 'A short, human-readable name for this field. Appears as the column header in extraction results. Keep it under ~30 characters. Example: "Submission Deadline".',
@@ -37,7 +35,7 @@ const HELP = {
     confidenceThreshold: 'Minimum confidence score (0–100) the AI must report for an extracted answer to be considered high-confidence. Answers below this value appear in the Low Confidence filter for human review. Defaults to 80. Not applied to Reasoning questions.'
 };
 
-const CARD_BASE = 'q-card slds-box slds-box_x-small slds-theme_default';
+const ACC_ITEM_BASE = 'acc-item';
 
 let _seq = 1;
 
@@ -50,12 +48,11 @@ function makeRow(overrides = {}) {
         outputType: 'Text',
         questionType: 'Extraction',
         category: 'General',
-        creatingCategory: false,
-        newCategoryValue: '',
         isRequired: false,
         extractionHint: '',
         showHint: false,
         confidenceThreshold: 80,
+        expanded: false,
         error: null,
         dirty: false,
         markedForDeletion: false,
@@ -65,13 +62,16 @@ function makeRow(overrides = {}) {
 }
 
 function decorate(row) {
+    const typeClass = row.questionType === 'Reasoning' ? 'acc-item_reasoning' : 'acc-item_extraction';
     const mods = [];
-    if (row.markedForDeletion) mods.push('q-card_pending-delete');
+    if (row.markedForDeletion) mods.push('acc-item_pending-delete');
     else {
-        if (row.error) mods.push('q-card_error');
-        if (row.sfId && row.dirty) mods.push('q-card_dirty');
+        if (row.error) mods.push('acc-item_error');
+        if (row.sfId && row.dirty) mods.push('acc-item_dirty');
     }
-    const cardClass = `${CARD_BASE}${mods.length ? ' ' + mods.join(' ') : ''}`;
+    const rowClass = `${ACC_ITEM_BASE} ${typeClass}${mods.length ? ' ' + mods.join(' ') : ''}`;
+    const chevronIcon = row.expanded ? 'utility:chevrondown' : 'utility:chevronright';
+    const chevronTitle = row.expanded ? 'Collapse' : 'Expand';
     const hintIcon = row.showHint ? 'utility:chevrondown' : 'utility:chevronright';
     const hintIsSet = !!row.extractionHint?.trim();
     let hintLabel;
@@ -82,7 +82,16 @@ function decorate(row) {
         !row.showHint && hintIsSet ? ' hint-disclosure_set' : ''
     }`;
     const isReasoning = row.questionType === 'Reasoning';
-    return { ...row, cardClass, hintIcon, hintLabel, hintDisclosureClass, isReasoning };
+
+    const metaLine1 = `${row.questionType} · ${row.outputType}`;
+    const metaLine1Class = `acc-meta-line acc-meta-line_type-${row.questionType.toLowerCase()}`;
+    const line2Parts = [];
+    if (!isReasoning) line2Parts.push(`${row.confidenceThreshold}%`);
+    if (row.isRequired) line2Parts.push('Required');
+    const metaLine2 = line2Parts.join(' · ');
+    const metaLine2Class = `acc-meta-line acc-meta-line_sub${row.isRequired ? ' acc-meta-line_required' : ''}`;
+
+    return { ...row, rowClass, chevronIcon, chevronTitle, hintIcon, hintLabel, hintDisclosureClass, isReasoning, metaLine1, metaLine1Class, metaLine2, metaLine2Class };
 }
 
 export default class RfpQuestionBuilder extends LightningElement {
@@ -91,8 +100,13 @@ export default class RfpQuestionBuilder extends LightningElement {
     @track rows = [];
     @track isBusy = false;
     @track globalError = null;
-    @track overviewMode = true;
+    @track pendingNewCategory = null;
     @track categoryList = [...DEFAULT_CATEGORIES];
+
+    @track groundingContext = '';
+    @track groundingSaving = false;
+    @track groundingSavedLabel = null;
+    _groundingTimer = null;
 
     typeOptions = TYPE_OPTIONS;
     questionTypeOptions = QUESTION_TYPE_OPTIONS;
@@ -106,14 +120,20 @@ export default class RfpQuestionBuilder extends LightningElement {
     helpRequired = HELP.required;
     helpConfidenceThreshold = HELP.confidenceThreshold;
 
-    _originalOrder = new Map(); // sfId -> original index
+    _originalOrder = new Map();
     _dragSourceId = null;
+
+    @wire(getRecord, { recordId: '$recordId', fields: [GROUNDING_CONTEXT_FIELD] })
+    wiredProfile({ data }) {
+        if (data) {
+            this.groundingContext = getFieldValue(data, GROUNDING_CONTEXT_FIELD) || '';
+        }
+    }
 
     @wire(getExistingQuestions, { profileId: '$recordId' })
     wiredQuestions({ data }) {
         if (data) {
             this._originalOrder = new Map();
-            // Merge any saved categories into the live option list.
             this.mergeCategories(data.map(q => q.Category__c));
             this.rows = data.map((q, idx) => {
                 this._originalOrder.set(q.Id, idx);
@@ -135,20 +155,6 @@ export default class RfpQuestionBuilder extends LightningElement {
     }
 
     // ── Derived state ──────────────────────────────────────────────────────
-
-    get visibleRows() {
-        let n = 0;
-        return this.rows.map(r => {
-            const active = !r.markedForDeletion;
-            if (active) n++;
-            return {
-                ...r,
-                position: active ? n : null,
-                isExisting: !!r.sfId,
-                showActiveBody: active
-            };
-        });
-    }
 
     get totalCount() {
         return this.rows.filter(r => !r.markedForDeletion).length;
@@ -174,12 +180,6 @@ export default class RfpQuestionBuilder extends LightningElement {
 
     // ── Categories ─────────────────────────────────────────────────────────
 
-    get categoryOptions() {
-        const opts = this.categoryList.map(c => ({ label: c, value: c }));
-        opts.push({ label: '+ New category…', value: NEW_CATEGORY_SENTINEL });
-        return opts;
-    }
-
     mergeCategories(values) {
         const next = [...this.categoryList];
         const lower = new Set(next.map(c => c.toLowerCase()));
@@ -193,25 +193,12 @@ export default class RfpQuestionBuilder extends LightningElement {
         this.categoryList = next;
     }
 
-    // ── Overview mode ──────────────────────────────────────────────────────
+    // ── Category-grouped accordion ─────────────────────────────────────────
 
-    toggleOverviewMode() {
-        this.overviewMode = !this.overviewMode;
-    }
-
-    get editMode() {
-        return !this.overviewMode;
-    }
-
-    get modeToggleLabel() {
-        return this.overviewMode ? 'Switch to Edit' : 'Switch to Overview';
-    }
-
-    get overviewGroups() {
-        const live = this.rows.filter(r => !r.markedForDeletion);
+    get categoryGroups() {
         const groups = [];
         const byCat = new Map();
-        for (const r of live) {
+        for (const r of this.rows) {
             const cat = (r.category && r.category.trim()) || 'General';
             if (!byCat.has(cat)) {
                 const g = { key: cat, category: cat, items: [] };
@@ -219,12 +206,11 @@ export default class RfpQuestionBuilder extends LightningElement {
                 groups.push(g);
             }
             byCat.get(cat).items.push({
-                id: r.id,
-                questionLabel: r.questionLabel || '(untitled)',
-                questionText: r.questionText || '—'
+                ...r,
+                isExisting: !!r.sfId,
+                showActiveBody: !r.markedForDeletion
             });
         }
-        // General first, then alphabetical.
         groups.sort((a, b) => {
             if (a.category === 'General') return -1;
             if (b.category === 'General') return 1;
@@ -232,6 +218,259 @@ export default class RfpQuestionBuilder extends LightningElement {
         });
         return groups;
     }
+
+    get isAddingCategory() {
+        return this.pendingNewCategory !== null;
+    }
+
+    get allExpanded() {
+        const active = this.rows.filter(r => !r.markedForDeletion);
+        return active.length > 0 && active.every(r => r.expanded);
+    }
+
+    get allCollapsed() {
+        const active = this.rows.filter(r => !r.markedForDeletion);
+        return active.length > 0 && active.every(r => !r.expanded);
+    }
+
+    // ── Expand / Collapse ──────────────────────────────────────────────────
+
+    handleToggleExpand(event) {
+        const { id } = event.currentTarget.dataset;
+        this.rows = this.rows.map(r =>
+            r.id === id ? decorate({ ...r, expanded: !r.expanded }) : r
+        );
+    }
+
+    handleExpandAll() {
+        this.rows = this.rows.map(r => decorate({ ...r, expanded: true }));
+    }
+
+    handleCollapseAll() {
+        this.rows = this.rows.map(r => decorate({ ...r, expanded: false }));
+    }
+
+    // ── Add Category ───────────────────────────────────────────────────────
+
+    handleAddCategory() {
+        this.pendingNewCategory = '';
+    }
+
+    handleNewCategoryNameInput(event) {
+        this.pendingNewCategory = event.target.value;
+    }
+
+    confirmAddCategory() {
+        const name = (this.pendingNewCategory || '').trim();
+        if (!name) {
+            this.pendingNewCategory = null;
+            return;
+        }
+        const existing = this.categoryList.find(c => c.toLowerCase() === name.toLowerCase());
+        const finalName = existing || name;
+        if (!existing) {
+            this.mergeCategories([finalName]);
+        }
+        this.addQuestionToCategory(finalName);
+        this.pendingNewCategory = null;
+    }
+
+    cancelAddCategory() {
+        this.pendingNewCategory = null;
+    }
+
+    // ── Add Question ───────────────────────────────────────────────────────
+
+    handleAddQuestionToCategory(event) {
+        const category = event.currentTarget.dataset.category;
+        this.addQuestionToCategory(category);
+    }
+
+    addQuestionToCategory(category) {
+        const newRow = makeRow({ category, expanded: true });
+        this.rows = [...this.rows, newRow];
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            const input = this.template.querySelector(
+                `lightning-input[data-id="${newRow.id}"][data-field="questionLabel"]`
+            );
+            if (input) input.focus();
+        }, 50);
+    }
+
+    addQuestion() {
+        this.addQuestionToCategory('General');
+    }
+
+    // ── Grounding context auto-save ────────────────────────────────────────
+
+    handleGroundingChange(event) {
+        this.groundingContext = event.target.value;
+        clearTimeout(this._groundingTimer);
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this._groundingTimer = setTimeout(() => {
+            this._saveGrounding();
+        }, 800);
+    }
+
+    async _saveGrounding() {
+        this.groundingSaving = true;
+        this.groundingSavedLabel = null;
+        try {
+            await updateRecord({
+                fields: {
+                    Id: this.recordId,
+                    Grounding_Context__c: this.groundingContext
+                }
+            });
+            this.groundingSavedLabel = '• Saved';
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => { this.groundingSavedLabel = null; }, 2000);
+        } catch (e) {
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Error saving context',
+                message: e?.body?.message ?? 'Save failed.',
+                variant: 'error'
+            }));
+        } finally {
+            this.groundingSaving = false;
+        }
+    }
+
+    // ── Row mutation helpers ───────────────────────────────────────────────
+
+    _patchRow(id, patch) {
+        this.rows = this.rows.map(r =>
+            r.id === id
+                ? decorate({ ...r, ...patch, dirty: r.sfId ? true : r.dirty, error: null })
+                : r
+        );
+        this.globalError = null;
+    }
+
+    handleFieldChange(event) {
+        const { id, field } = event.currentTarget.dataset;
+        this._patchRow(id, { [field]: event.target.value });
+    }
+
+    handleRequiredChange(event) {
+        const { id } = event.currentTarget.dataset;
+        this._patchRow(id, { isRequired: event.target.checked });
+    }
+
+    toggleHint(event) {
+        const { id } = event.currentTarget.dataset;
+        this.rows = this.rows.map(r =>
+            r.id === id ? decorate({ ...r, showHint: !r.showHint }) : r
+        );
+    }
+
+    removeHint(event) {
+        const { id } = event.currentTarget.dataset;
+        this._patchRow(id, { extractionHint: '', showHint: false });
+    }
+
+    duplicateRow(event) {
+        const { id } = event.currentTarget.dataset;
+        const idx = this.rows.findIndex(r => r.id === id);
+        if (idx < 0) return;
+        const src = this.rows[idx];
+        const clone = makeRow({
+            questionLabel: src.questionLabel ? `${src.questionLabel} (copy)` : '',
+            questionText: src.questionText,
+            outputType: src.outputType,
+            questionType: src.questionType,
+            category: src.category,
+            isRequired: src.isRequired,
+            extractionHint: src.extractionHint,
+            showHint: src.showHint,
+            confidenceThreshold: src.confidenceThreshold,
+            expanded: true
+        });
+        const next = [...this.rows];
+        next.splice(idx + 1, 0, clone);
+        this.rows = next;
+    }
+
+    deleteRow(event) {
+        const { id } = event.currentTarget.dataset;
+        if (!this.rows.find(r => r.id === id)) return;
+        this.rows = this.rows.map(r =>
+            r.id === id ? decorate({ ...r, markedForDeletion: true }) : r
+        );
+    }
+
+    undoDelete(event) {
+        const { id } = event.currentTarget.dataset;
+        this.rows = this.rows.map(r =>
+            r.id === id ? decorate({ ...r, markedForDeletion: false }) : r
+        );
+    }
+
+    // ── Drag and drop ──────────────────────────────────────────────────────
+
+    onDragStart(event) {
+        const id = event.currentTarget.dataset.id;
+        this._dragSourceId = id;
+        event.dataTransfer.effectAllowed = 'move';
+        try { event.dataTransfer.setData('text/plain', id); } catch (e) { /* ignore */ }
+        event.currentTarget.classList.add('acc-item_dragging');
+    }
+
+    onDragEnd(event) {
+        event.currentTarget.classList.remove('acc-item_dragging');
+        this.template.querySelectorAll('.acc-item_drop-target').forEach(el =>
+            el.classList.remove('acc-item_drop-target')
+        );
+        this._dragSourceId = null;
+    }
+
+    onDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }
+
+    onDragEnter(event) {
+        if (!this._dragSourceId) return;
+        const targetId = event.currentTarget.dataset.id;
+        if (targetId === this._dragSourceId) return;
+        const src = this.rows.find(r => r.id === this._dragSourceId);
+        const tgt = this.rows.find(r => r.id === targetId);
+        if (!src || !tgt) return;
+        event.currentTarget.classList.add('acc-item_drop-target');
+    }
+
+    onDragLeave(event) {
+        event.currentTarget.classList.remove('acc-item_drop-target');
+    }
+
+    onDrop(event) {
+        event.preventDefault();
+        const targetId = event.currentTarget.dataset.id;
+        const sourceId = this._dragSourceId;
+        event.currentTarget.classList.remove('acc-item_drop-target');
+        if (!sourceId || sourceId === targetId) return;
+
+        const src = this.rows.find(r => r.id === sourceId);
+        const tgt = this.rows.find(r => r.id === targetId);
+        if (!src || !tgt) return;
+
+        const srcIdx = this.rows.indexOf(src);
+        const tgtIdx = this.rows.indexOf(tgt);
+        let next = [...this.rows];
+        const [moved] = next.splice(srcIdx, 1);
+        next.splice(tgtIdx, 0, moved);
+        if (src.category !== tgt.category) {
+            next = next.map(r =>
+                r.id === moved.id
+                    ? decorate({ ...r, category: tgt.category, dirty: r.sfId ? true : r.dirty })
+                    : r
+            );
+        }
+        this.rows = next;
+    }
+
+    // ── Save ───────────────────────────────────────────────────────────────
 
     get newRowsToCreate() {
         return this.rows.filter(r =>
@@ -270,213 +509,7 @@ export default class RfpQuestionBuilder extends LightningElement {
         return parts.length ? parts.join(' / ') : 'Save Questions';
     }
 
-    handleGroundingSaved() {
-        this.dispatchEvent(new ShowToastEvent({
-            title: 'Saved',
-            message: 'Grounding context updated.',
-            variant: 'success'
-        }));
-    }
-
-    // ── Row mutation helpers ───────────────────────────────────────────────
-
-    _patchRow(id, patch) {
-        this.rows = this.rows.map(r =>
-            r.id === id
-                ? decorate({ ...r, ...patch, dirty: r.sfId ? true : r.dirty, error: null })
-                : r
-        );
-        this.globalError = null;
-    }
-
-    addQuestion() {
-        const newRow = makeRow();
-        this.rows = [...this.rows, newRow];
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        setTimeout(() => {
-            const inputs = this.template.querySelectorAll(
-                `lightning-input[data-id="${newRow.id}"][data-field="questionLabel"]`
-            );
-            if (inputs.length) inputs[0].focus();
-        }, 50);
-    }
-
-    handleFieldChange(event) {
-        const { id, field } = event.currentTarget.dataset;
-        this._patchRow(id, { [field]: event.target.value });
-    }
-
-    handleRequiredChange(event) {
-        const { id } = event.currentTarget.dataset;
-        this._patchRow(id, { isRequired: event.target.checked });
-    }
-
-    handleCategoryChange(event) {
-        const { id } = event.currentTarget.dataset;
-        const value = event.detail.value;
-        if (value === NEW_CATEGORY_SENTINEL) {
-            // Enter inline-create mode without changing the saved category yet.
-            this.rows = this.rows.map(r =>
-                r.id === id ? decorate({ ...r, creatingCategory: true, newCategoryValue: '' }) : r
-            );
-            return;
-        }
-        this._patchRow(id, { category: value });
-    }
-
-    handleNewCategoryInput(event) {
-        const { id } = event.currentTarget.dataset;
-        const draft = event.target.value;
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, newCategoryValue: draft }) : r
-        );
-    }
-
-    confirmNewCategory(event) {
-        const { id } = event.currentTarget.dataset;
-        const row = this.rows.find(r => r.id === id);
-        const name = (row?.newCategoryValue || '').trim();
-        if (!name) {
-            this.cancelNewCategory(event);
-            return;
-        }
-        // Reuse an existing category if it matches case-insensitively.
-        const existing = this.categoryList.find(c => c.toLowerCase() === name.toLowerCase());
-        const finalName = existing || name;
-        if (!existing) {
-            this.mergeCategories([finalName]);
-        }
-        this.rows = this.rows.map(r =>
-            r.id === id
-                ? decorate({
-                      ...r,
-                      category: finalName,
-                      creatingCategory: false,
-                      newCategoryValue: '',
-                      dirty: r.sfId ? true : r.dirty,
-                      error: null
-                  })
-                : r
-        );
-        this.globalError = null;
-    }
-
-    cancelNewCategory(event) {
-        const { id } = event.currentTarget.dataset;
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, creatingCategory: false, newCategoryValue: '' }) : r
-        );
-    }
-
-    toggleHint(event) {
-        const { id } = event.currentTarget.dataset;
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, showHint: !r.showHint }) : r
-        );
-    }
-
-    removeHint(event) {
-        const { id } = event.currentTarget.dataset;
-        this._patchRow(id, { extractionHint: '', showHint: false });
-    }
-
-    duplicateRow(event) {
-        const { id } = event.currentTarget.dataset;
-        const idx = this.rows.findIndex(r => r.id === id);
-        if (idx < 0) return;
-        const src = this.rows[idx];
-        const clone = makeRow({
-            questionLabel: src.questionLabel ? `${src.questionLabel} (copy)` : '',
-            questionText: src.questionText,
-            outputType: src.outputType,
-            questionType: src.questionType,
-            category: src.category,
-            isRequired: src.isRequired,
-            extractionHint: src.extractionHint,
-            showHint: src.showHint,
-            confidenceThreshold: src.confidenceThreshold
-        });
-        const next = [...this.rows];
-        next.splice(idx + 1, 0, clone);
-        this.rows = next;
-    }
-
-    deleteRow(event) {
-        const { id } = event.currentTarget.dataset;
-        const target = this.rows.find(r => r.id === id);
-        if (!target) return;
-        if (!target.sfId) {
-            this.rows = this.rows.filter(r => r.id !== id);
-            return;
-        }
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, markedForDeletion: true }) : r
-        );
-    }
-
-    undoDelete(event) {
-        const { id } = event.currentTarget.dataset;
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, markedForDeletion: false }) : r
-        );
-    }
-
-    // ── Drag and drop ──────────────────────────────────────────────────────
-
-    onDragStart(event) {
-        const id = event.currentTarget.dataset.id;
-        this._dragSourceId = id;
-        event.dataTransfer.effectAllowed = 'move';
-        // Required for Firefox to fire drag events
-        try { event.dataTransfer.setData('text/plain', id); } catch (e) { /* ignore */ }
-        event.currentTarget.classList.add('q-card_dragging');
-    }
-
-    onDragEnd(event) {
-        event.currentTarget.classList.remove('q-card_dragging');
-        this.template.querySelectorAll('.q-card_drop-target').forEach(el =>
-            el.classList.remove('q-card_drop-target')
-        );
-        this._dragSourceId = null;
-    }
-
-    onDragOver(event) {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-    }
-
-    onDragEnter(event) {
-        if (!this._dragSourceId) return;
-        const targetId = event.currentTarget.dataset.id;
-        if (targetId === this._dragSourceId) return;
-        event.currentTarget.classList.add('q-card_drop-target');
-    }
-
-    onDragLeave(event) {
-        event.currentTarget.classList.remove('q-card_drop-target');
-    }
-
-    onDrop(event) {
-        event.preventDefault();
-        const targetId = event.currentTarget.dataset.id;
-        const sourceId = this._dragSourceId;
-        event.currentTarget.classList.remove('q-card_drop-target');
-        if (!sourceId || sourceId === targetId) return;
-
-        const src = this.rows.findIndex(r => r.id === sourceId);
-        const tgt = this.rows.findIndex(r => r.id === targetId);
-        if (src < 0 || tgt < 0) return;
-
-        const next = [...this.rows];
-        const [moved] = next.splice(src, 1);
-        next.splice(tgt, 0, moved);
-        this.rows = next;
-    }
-
-    // ── Save ───────────────────────────────────────────────────────────────
-
     async handleSave() {
-        // Validate new (non-deleted) rows: label and prompt must agree
         let hasRowErrors = false;
         const validated = this.rows.map(r => {
             if (r.sfId || r.markedForDeletion) return r;
@@ -484,11 +517,11 @@ export default class RfpQuestionBuilder extends LightningElement {
             const hasText = !!r.questionText?.trim();
             if (hasLabel && !hasText) {
                 hasRowErrors = true;
-                return decorate({ ...r, error: 'Question prompt is required.' });
+                return decorate({ ...r, error: 'Question prompt is required.', expanded: true });
             }
             if (!hasLabel && hasText) {
                 hasRowErrors = true;
-                return decorate({ ...r, error: 'Label is required.' });
+                return decorate({ ...r, error: 'Label is required.', expanded: true });
             }
             return decorate({ ...r, error: null });
         });
@@ -504,7 +537,6 @@ export default class RfpQuestionBuilder extends LightningElement {
             return;
         }
 
-        // Compute final sort order for non-deleted rows: index*10 in current order
         const liveRows = this.rows.filter(r => !r.markedForDeletion);
         const sortOrderById = new Map();
         liveRows.forEach((r, idx) => sortOrderById.set(r.id, (idx + 1) * 10));
@@ -562,7 +594,6 @@ export default class RfpQuestionBuilder extends LightningElement {
                 variant: 'success'
             }));
 
-            // Drop deleted rows; mark survivors clean. Wire will refresh from server with new IDs/order.
             this.rows = this.rows
                 .filter(r => !r.markedForDeletion)
                 .map(r => decorate({ ...r, dirty: false, error: null }));

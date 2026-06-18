@@ -92,8 +92,6 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`), both receiving a `
 | `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **Gemini 2.5 Flash** |
 | `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **Opus 4.8** |
 
-Both templates must be **published** in Setup → Prompt Builder before extraction will work.
-
 **Model pinning:** the templates ship with their intended models set in the XML (`sfdc_ai__DefaultVertexAIGemini35Flash` for `RFP_Extract_Questions`, `sfdc_ai__DefaultBedrockAnthropicClaude48Opus` for `RFP_Reason_Questions`). If a model isn't available in a given org, open the template in Prompt Builder and set the model in the model picker, or replace the `<primaryModel>` value in the template XML with the exact model API name from your org's Einstein model list and redeploy. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
 
 ## Permission Set
@@ -134,9 +132,7 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 
 The following steps cannot be automated via Metadata API:
 
-1. **Publish both Prompt Builder templates** — Setup → Prompt Builder → publish `RFP_Extract_Questions` and `RFP_Reason_Questions`. While there, verify each template's model (Gemini 2.5 Flash / Opus 4.8) is available in the org — see [Prompt Builder Templates](#prompt-builder-templates).
-
-2. **Activate record pages** — Setup → Lightning App Builder → open each of the four pages (RFP Record Page, Extraction Profile Record Page, Extraction Question Record Page, Extraction Result Record Page) → Activate → Assign as Org Default. Page assignment state is not stored in any deployable metadata artifact — activation is always a one-time manual step per org.
+1. **Activate record pages** — Setup → Lightning App Builder → open each of the four pages (RFP Record Page, Extraction Profile Record Page, Extraction Question Record Page, Extraction Result Record Page) → Activate → Assign as Org Default. Page assignment state is not stored in any deployable metadata artifact — activation is always a one-time manual step per org.
 
 ### What's automated on deploy
 

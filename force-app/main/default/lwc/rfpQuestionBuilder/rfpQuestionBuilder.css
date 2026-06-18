@@ -4,10 +4,6 @@
     gap: 0.75rem;
 }
 
-.title-toggle {
-    margin-left: 0.5rem;
-}
-
 .summary-chip {
     font-size: 0.75rem;
     font-weight: 400;
@@ -20,74 +16,220 @@
     background: #fafaf9;
 }
 
-/* Question card */
-.q-card {
-    border: 1px solid #e5e5e5;
-    border-radius: 6px;
+/* ── Category sections ──────────────────────────────────────────────────── */
+
+.cat-section {
+    margin-bottom: 1.25rem;
+}
+
+.cat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #dddbda;
+    margin-bottom: 0.25rem;
+}
+
+.cat-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #444;
+}
+
+/* Add category inline creation bar */
+.cat-new-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem;
     margin-bottom: 0.75rem;
-    padding: 1rem;
+    border: 1px dashed #0070d2;
+    border-radius: 4px;
+    background: #f0f8ff;
+}
+
+.cat-new-label {
+    font-size: 0.8125rem;
+    color: #0070d2;
+    font-weight: 500;
+    white-space: nowrap;
+    padding-left: 0.25rem;
+}
+
+.cat-new-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* ── Accordion item (replaces .q-card) ──────────────────────────────────── */
+
+.acc-item {
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
     transition: border-color 0.1s ease, background-color 0.1s ease;
 }
-.q-card:hover { border-color: #d8dde6; }
+.acc-item:hover { border-color: #d8dde6; }
 
-.q-card_dragging { opacity: 0.5; }
-.q-card_drop-target { border-top: 2px solid #0070d2; }
-.q-card_dirty { border-left: 3px solid #0070d2; padding-left: calc(1rem - 2px); }
-.q-card_error { border-color: #c23934; background: #fff5f5; }
-.q-card_pending-delete { background: #fef9e7; border-color: #fab436; }
+.acc-item_dragging { opacity: 0.5; }
+.acc-item_drop-target { border-top: 2px solid #0070d2; }
 
-.q-card-header {
-    align-items: flex-start;
-    gap: 0.5rem;
+/* ── Type color accents — delete this block to revert all coloring ───────── */
+.acc-item_extraction { border-left: 3px solid rgba(0, 112, 210, 0.3); }
+.acc-item_reasoning  { border-left: 3px solid rgba(123, 94, 167, 0.3); }
+.acc-meta-line_type-extraction { color: #0070d2; }
+.acc-meta-line_type-reasoning  { color: #7b5ea7; }
+.acc-meta-line_required { color: #c98b00; }
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+.acc-item_dirty { border-left: 3px solid #0070d2; }
+.acc-item_error { border-color: #c23934; background: #fff5f5; }
+.acc-item_pending-delete { background: #fef9e7; border-color: #fab436; }
+
+/* ── Collapsed row ──────────────────────────────────────────────────────── */
+
+.acc-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0.25rem 0.5rem;
 }
 
-.q-number {
-    min-width: 1.75rem;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #706e6b;
-    text-align: right;
-    /* Vertically centers the number with the label input field on the row below the field's own label */
-    padding-top: 1.65rem;
+.acc-row_pending {
+    padding: 0.5rem;
 }
 
-.q-drag-handle {
+.acc-pending-msg {
+    width: 100%;
+}
+
+.acc-drag-handle {
+    flex: 0 0 auto;
     cursor: grab;
     color: #b0adab;
-    padding-right: 0.25rem;
-    padding-top: 1.5rem;
     display: flex;
     align-items: center;
 }
-.q-drag-handle:active { cursor: grabbing; }
+.acc-drag-handle:active { cursor: grabbing; }
 
-.q-category-header {
-    width: 160px;
-    min-width: 120px;
+.acc-chevron {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    padding: 0.1rem;
+    cursor: pointer;
+    color: #706e6b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    transition: color 0.1s ease, background-color 0.1s ease;
+}
+.acc-chevron:hover { color: #0070d2; background: #f3f3f3; }
+
+/* Wrapper divs for the two inline inputs */
+.acc-col-label {
+    flex: 0 0 22%;
+    min-width: 100px;
+    --slds-c-form-element-spacing-block-end: 0;
+    --slds-c-input-sizing-height: 2.5rem;
 }
 
-.q-required-cell {
+.acc-col-prompt {
+    flex: 1 1 auto;
+    min-width: 0;
+    --slds-c-form-element-spacing-block-end: 0;
+}
+
+/* Remove default bottom margin SLDS adds to form elements inside the row */
+.acc-row lightning-input,
+.acc-row lightning-textarea {
+    margin-bottom: 0;
+}
+
+.acc-prompt-textarea textarea {
+    min-height: 2.5rem;
+    resize: vertical;
+}
+
+.acc-col-meta {
+    flex: 0 0 auto;
+    min-width: 100px;
     display: flex;
-    align-items: flex-start;
-    gap: 0.25rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0 0.5rem;
+}
+
+.acc-meta-line {
+    font-size: 0.6875rem;
+    color: #706e6b;
     white-space: nowrap;
-    min-width: 6rem;
+    line-height: 1.3;
+}
+
+.acc-meta-line_sub {
+    color: #3e3e3c;
+}
+
+.acc-micro-label {
+    font-size: 0.6875rem;
+    color: #b0adab;
+    display: block;
+    line-height: 1;
+    margin-bottom: 1px;
+    user-select: none;
 }
 
 .dirty-indicator {
+    flex: 0 0 auto;
     font-size: 1.4rem;
     color: #0070d2;
     line-height: 1;
 }
 
-/* Make the label *value* the dominant element, not the field's caption.
-   Inheritable properties set on the lightning-input host cascade into
-   its shadow-DOM <input>; the SLDS styling hook handles the text color. */
-.q-label-input {
-    font-size: 0.875rem;
-    font-weight: 600;
-    --slds-c-input-text-color: #080707;
+.acc-duplicate {
+    flex: 0 0 auto;
+    opacity: 0;
+    transition: opacity 0.1s ease;
 }
+.acc-item:hover .acc-duplicate { opacity: 1; }
+
+.acc-deactivate {
+    flex: 0 0 auto;
+    --slds-c-button-text-color: #b0adab;
+}
+.acc-item:hover .acc-deactivate {
+    --slds-c-button-text-color: #c23934;
+}
+
+/* ── Expanded details panel ─────────────────────────────────────────────── */
+
+.acc-cat-hint {
+    font-style: italic;
+}
+
+.acc-expanded {
+    padding: 0.75rem 0.75rem 0.75rem 2.25rem;
+    border-top: 1px solid #f3f2f2;
+}
+
+
+.acc-expanded-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f3f2f2;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* ── Shared field helpers ────────────────────────────────────────────────── */
 
 .q-prompt textarea {
     min-height: 3rem;
@@ -128,73 +270,16 @@
     margin: 0.5rem 0 0;
 }
 
-.q-card-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    border-top: 1px solid #f3f2f2;
-    padding-top: 0.5rem;
-    margin-top: 0.75rem;
+.grounding-saved-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-top: 0.25rem;
 }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
 
 .builder-footer {
     border-top: 1px solid #dddbda;
     padding-top: 0.75rem;
-}
-
-/* Overview mode */
-.overview-toggle {
-    --slds-c-toggle-color-background-checked: #0176d3;
-}
-
-.overview-group {
-    margin-bottom: 1rem;
-}
-
-.overview-category-header {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #444;
-    padding: 0.25rem 0;
-    border-bottom: 1px solid #dddbda;
-    margin-bottom: 0.25rem;
-}
-
-.overview-row {
-    display: grid;
-    grid-template-columns: minmax(140px, 22%) 1fr auto;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.4rem 0.25rem;
-    border-bottom: 1px solid #f3f3f3;
-    transition: background-color 0.1s ease;
-}
-.overview-row:hover { background: #fafaf9; }
-
-.overview-deactivate {
-    --slds-c-button-text-color: #b0adab;
-}
-.overview-row:hover .overview-deactivate {
-    --slds-c-button-text-color: #c23934;
-}
-
-.overview-label {
-    font-weight: 600;
-    color: #181818;
-}
-
-.overview-prompt {
-    color: #706e6b;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    min-width: 0;
-    scrollbar-width: thin;
-}
-.overview-prompt::-webkit-scrollbar { height: 6px; }
-.overview-prompt::-webkit-scrollbar-thumb {
-    background: #d8dde6;
-    border-radius: 3px;
 }
