@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Count of RFPs grouped by AI processing status</description>
+    <format>Summary</format>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>RFP__c.Processing_Status__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>RFPs by Processing Status</name>
+    <reportType>CustomEntity$RFP__c</reportType>
+    <scope>organization</scope>
+    <showDetails>false</showDetails>
+</Report>
