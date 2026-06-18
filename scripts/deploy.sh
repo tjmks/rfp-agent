@@ -30,18 +30,36 @@ fi
 # layout validator will accept the RelatedFileList component. (2) lookup fields
 # on RFP__c reference Extraction_Profile__c, so all objects must exist before
 # the full source deploy validates field references.
-echo "→ [1/4] Deploying custom objects (prerequisite for layouts and field references)"
+echo "→ [1/4] Deploying objects, Apex, LWC, and record pages (prerequisite for layouts)"
+# Two reasons for this pre-pass:
+# (1) RFP__c.enableFeeds=true must be live before the layout validator accepts RelatedFileList.
+# (2) Object actionOverrides reference FlexiPages; FlexiPages reference LWC components and
+#     Apex classes. Everything must land in one batch so the deployment engine can order them
+#     correctly (objects → Apex → LWC → FlexiPage). RFP_Agent_Home_Page is excluded here
+#     because it depends on the dashboard, which is deployed in step 2.
 sf project deploy start \
   --metadata "CustomObject:RFP__c" \
              "CustomObject:Extraction_Profile__c" \
              "CustomObject:Extraction_Question__c" \
              "CustomObject:Extraction_Result__c" \
              "CustomObject:RFP_Extraction_Complete__e" \
+             "ApexClass:RFPController" \
+             "ApexClass:RFPExtractionAction" \
+             "ApexClass:RFPExtractionQueueable" \
+             "ApexClass:RFPExtractionException" \
+             "ApexClass:RFPResultParser" \
+             "ApexClass:RFPFinalizationService" \
+             "ApexClass:RFPInstallHandler" \
+             "StaticResource:AgentforceGuy" \
+             "LightningComponentBundle:rfpUploadAction" \
+             "LightningComponentBundle:rfpExtractionReview" \
+             "LightningComponentBundle:rfpQuestionBuilder" \
+             "LightningComponentBundle:rfpConfidenceBadge" \
+             "LightningComponentBundle:rfpResultField" \
              "FlexiPage:RFP_Record_Page" \
              "FlexiPage:Extraction_Profile_Record_Page" \
              "FlexiPage:Extraction_Question_Record_Page" \
              "FlexiPage:Extraction_Result_Record_Page" \
-             "FlexiPage:RFP_Agent_Home_Page" \
   --target-org "$TARGET_ORG" \
   --wait 30 \
   --concise
