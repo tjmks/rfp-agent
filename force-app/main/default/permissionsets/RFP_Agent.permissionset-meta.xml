@@ -5,7 +5,7 @@
 
     <!-- App visibility -->
     <applicationVisibilities>
-        <application>RFP_Agent</application>
+        <application>RFP_App</application>
         <visible>true</visible>
     </applicationVisibilities>
 
@@ -103,6 +103,7 @@
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Sort_Order__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Target_Field_API_Name__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Category__c</field><readable>true</readable></fieldPermissions>
+    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Prompt_Source__c</field><readable>true</readable></fieldPermissions>
 
     <!-- Apex class access -->
     <classAccesses>
