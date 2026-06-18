@@ -30,7 +30,7 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
 
             List<Extraction_Question__c> allQuestions = [
                 SELECT Id, Name, Question_Text__c, Output_Type__c,
-                       Question_Type__c, Is_Required__c, Sort_Order__c, Extraction_Hint__c,
+                       Question_Type__c, Is_Required__c, Sort_Order__c,
                        Target_Field_API_Name__c, Confidence_Threshold__c, Category__c
                 FROM Extraction_Question__c
                 WHERE Extraction_Profile__c = :rfp.Extraction_Profile__c
@@ -156,14 +156,10 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
     private static String serializeQuestions(List<Extraction_Question__c> questions) {
         List<Map<String, String>> qs = new List<Map<String, String>>();
         for (Extraction_Question__c q : questions) {
-            String questionText = q.Question_Text__c;
-            if (String.isNotBlank(q.Extraction_Hint__c)) {
-                questionText += '\nHint: ' + q.Extraction_Hint__c;
-            }
             qs.add(new Map<String, String>{
                 'id' => q.Id,
                 'label' => q.Name,
-                'question_text' => questionText,
+                'question_text' => q.Question_Text__c,
                 'output_type' => q.Output_Type__c
             });
         }

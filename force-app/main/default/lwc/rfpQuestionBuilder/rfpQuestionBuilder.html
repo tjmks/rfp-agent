@@ -280,58 +280,6 @@
                                             </template>
                                         </div>
 
-                                        <!-- Extraction hint disclosure -->
-                                        <div class="slds-m-bottom_x-small">
-                                            <div class="q-hint-toggle-row">
-                                                <button
-                                                    type="button"
-                                                    class={row.hintDisclosureClass}
-                                                    data-id={row.id}
-                                                    onclick={toggleHint}
-                                                    disabled={isBusy}>
-                                                    <lightning-icon
-                                                        icon-name={row.hintIcon}
-                                                        size="xx-small"
-                                                        class="slds-m-right_xx-small">
-                                                    </lightning-icon>
-                                                    {row.hintLabel}
-                                                </button>
-                                                <lightning-helptext content={helpExtractionHint} class="slds-m-left_xx-small">
-                                                </lightning-helptext>
-                                            </div>
-
-                                            <template if:true={row.showHint}>
-                                                <div class="slds-grid slds-gutters_xx-small slds-grid_vertical-align-end slds-m-top_xx-small">
-                                                    <div class="slds-col slds-grow">
-                                                        <lightning-textarea
-                                                            data-id={row.id}
-                                                            data-field="extractionHint"
-                                                            label="Hint"
-                                                            variant="label-hidden"
-                                                            value={row.extractionHint}
-                                                            placeholder="Additional context to help the AI find this value, e.g. &quot;Look in the timeline section&quot;…"
-                                                            max-length="1000"
-                                                            onchange={handleFieldChange}
-                                                            disabled={isBusy}
-                                                            class="q-hint-input">
-                                                        </lightning-textarea>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex">
-                                                        <lightning-button-icon
-                                                            icon-name="utility:close"
-                                                            variant="bare"
-                                                            size="small"
-                                                            alternative-text="Remove hint"
-                                                            title="Remove hint"
-                                                            data-id={row.id}
-                                                            onclick={removeHint}
-                                                            disabled={isBusy}>
-                                                        </lightning-button-icon>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-
                                         <template if:true={row.error}>
                                             <p class="row-error">{row.error}</p>
                                         </template>

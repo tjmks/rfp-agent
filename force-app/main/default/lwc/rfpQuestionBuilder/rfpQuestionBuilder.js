@@ -30,7 +30,6 @@ const HELP = {
     questionType: 'Routes the question to a different AI prompt.\n\nExtraction — best when the answer appears directly in the document (deadlines, prices, named entities, contacts). Returns a confidence score per answer and contributes to the overall RFP confidence rollup.\n\nReasoning — best when the answer requires synthesis across multiple sections (scope summaries, fit assessments, derived implications, comparisons). Runs on a separate template; confidence is fuzzy and excluded from the rollup.',
     outputType: 'How the answer should be formatted. Text/Long Text for free-form. Number/Currency/Date for typed values (validated). Boolean for yes/no. List for multi-value answers.',
     category: 'Groups this question in the review screen (Commercial / Technical / Compliance / General). Purely organizational — it does not change how the AI answers.',
-    extractionHint: 'Optional context that steers the AI to the right section, e.g. "Look in the timeline or schedule section". Useful when the prompt alone is ambiguous.',
     required: 'When checked, RFP processing flags missing answers for review. Optional questions return null silently if no answer is found.',
     confidenceThreshold: 'Minimum confidence score (0–100) the AI must report for an extracted answer to be considered high-confidence. Answers below this value appear in the Low Confidence filter for human review. Defaults to 80. Not applied to Reasoning questions.'
 };
@@ -49,8 +48,6 @@ function makeRow(overrides = {}) {
         questionType: 'Extraction',
         category: 'General',
         isRequired: false,
-        extractionHint: '',
-        showHint: false,
         confidenceThreshold: 80,
         expanded: false,
         error: null,
@@ -72,15 +69,6 @@ function decorate(row) {
     const rowClass = `${ACC_ITEM_BASE} ${typeClass}${mods.length ? ' ' + mods.join(' ') : ''}`;
     const chevronIcon = row.expanded ? 'utility:chevrondown' : 'utility:chevronright';
     const chevronTitle = row.expanded ? 'Collapse' : 'Expand';
-    const hintIcon = row.showHint ? 'utility:chevrondown' : 'utility:chevronright';
-    const hintIsSet = !!row.extractionHint?.trim();
-    let hintLabel;
-    if (row.showHint) hintLabel = 'Extraction hint';
-    else if (hintIsSet) hintLabel = 'Extraction hint set';
-    else hintLabel = 'Extraction hint (optional)';
-    const hintDisclosureClass = `slds-button slds-button_reset hint-disclosure${
-        !row.showHint && hintIsSet ? ' hint-disclosure_set' : ''
-    }`;
     const isReasoning = row.questionType === 'Reasoning';
     const typeColClass = isReasoning ? 'slds-col slds-size_1-of-2' : 'slds-col slds-size_1-of-3';
 
@@ -92,7 +80,7 @@ function decorate(row) {
     const metaLine2 = line2Parts.join(' · ');
     const metaLine2Class = `acc-meta-line acc-meta-line_sub${row.isRequired ? ' acc-meta-line_required' : ''}`;
 
-    return { ...row, rowClass, chevronIcon, chevronTitle, hintIcon, hintLabel, hintDisclosureClass, isReasoning, typeColClass, metaLine1, metaLine1Class, metaLine2, metaLine2Class };
+    return { ...row, rowClass, chevronIcon, chevronTitle, isReasoning, typeColClass, metaLine1, metaLine1Class, metaLine2, metaLine2Class };
 }
 
 export default class RfpQuestionBuilder extends LightningElement {
@@ -117,7 +105,6 @@ export default class RfpQuestionBuilder extends LightningElement {
     helpQuestionType = HELP.questionType;
     helpOutputType = HELP.outputType;
     helpCategory = HELP.category;
-    helpExtractionHint = HELP.extractionHint;
     helpRequired = HELP.required;
     helpConfidenceThreshold = HELP.confidenceThreshold;
 
@@ -146,8 +133,6 @@ export default class RfpQuestionBuilder extends LightningElement {
                     questionType: q.Question_Type__c || 'Extraction',
                     category: q.Category__c || 'General',
                     isRequired: q.Is_Required__c || false,
-                    extractionHint: q.Extraction_Hint__c || '',
-                    showHint: false,
                     confidenceThreshold: q.Confidence_Threshold__c ?? 80,
                     dirty: false
                 });
@@ -359,18 +344,6 @@ export default class RfpQuestionBuilder extends LightningElement {
         this._patchRow(id, { isRequired: event.target.checked });
     }
 
-    toggleHint(event) {
-        const { id } = event.currentTarget.dataset;
-        this.rows = this.rows.map(r =>
-            r.id === id ? decorate({ ...r, showHint: !r.showHint }) : r
-        );
-    }
-
-    removeHint(event) {
-        const { id } = event.currentTarget.dataset;
-        this._patchRow(id, { extractionHint: '', showHint: false });
-    }
-
     duplicateRow(event) {
         const { id } = event.currentTarget.dataset;
         const idx = this.rows.findIndex(r => r.id === id);
@@ -383,8 +356,6 @@ export default class RfpQuestionBuilder extends LightningElement {
             questionType: src.questionType,
             category: src.category,
             isRequired: src.isRequired,
-            extractionHint: src.extractionHint,
-            showHint: src.showHint,
             confidenceThreshold: src.confidenceThreshold,
             expanded: true
         });
@@ -559,7 +530,6 @@ export default class RfpQuestionBuilder extends LightningElement {
                     questionType: r.questionType,
                     category: r.category,
                     isRequired: r.isRequired,
-                    extractionHint: r.extractionHint?.trim() || null,
                     sortOrder: sortOrderById.get(r.id),
                     confidenceThreshold: r.questionType === 'Reasoning' ? null : (r.confidenceThreshold ?? 80)
                 }));
@@ -574,7 +544,6 @@ export default class RfpQuestionBuilder extends LightningElement {
                     questionType: r.questionType,
                     category: r.category,
                     isRequired: r.isRequired,
-                    extractionHint: r.extractionHint?.trim() || null,
                     sortOrder: sortOrderById.get(r.id),
                     confidenceThreshold: r.questionType === 'Reasoning' ? null : (r.confidenceThreshold ?? 80)
                 }));

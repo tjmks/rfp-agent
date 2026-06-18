@@ -235,34 +235,6 @@
     min-height: 3rem;
 }
 
-.q-hint-input textarea {
-    min-height: 4rem;
-}
-
-.q-hint-toggle-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.hint-disclosure {
-    font-size: 0.8125rem;
-    color: #0070d2;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-}
-.hint-disclosure:hover { text-decoration: underline; }
-.hint-disclosure[disabled] { color: #b0adab; cursor: not-allowed; }
-
-.hint-disclosure_set::after {
-    content: '';
-    display: inline-block;
-    width: 0.4rem; height: 0.4rem;
-    border-radius: 50%;
-    background: #0070d2;
-    margin-left: 0.4rem;
-}
 
 .row-error {
     font-size: 0.75rem;

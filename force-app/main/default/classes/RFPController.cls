@@ -167,7 +167,7 @@ public with sharing class RFPController {
     public static List<Extraction_Question__c> getExistingQuestions(Id profileId) {
         return [
             SELECT Id, Name, Question_Text__c, Output_Type__c,
-                   Question_Type__c, Is_Required__c, Extraction_Hint__c, Sort_Order__c,
+                   Question_Type__c, Is_Required__c, Sort_Order__c,
                    Category__c, Confidence_Threshold__c
             FROM Extraction_Question__c
             WHERE Extraction_Profile__c = :profileId
@@ -206,7 +206,6 @@ public with sharing class RFPController {
                 Output_Type__c = (String) q.get('outputType'),
                 Question_Type__c = (String) q.get('questionType'),
                 Is_Required__c = q.get('isRequired') == true,
-                Extraction_Hint__c = (String) q.get('extractionHint'),
                 Category__c = (String) q.get('category'),
                 Sort_Order__c = sortOrder,
                 Confidence_Threshold__c = confThreshold
@@ -231,7 +230,6 @@ public with sharing class RFPController {
                 Output_Type__c = (String) q.get('outputType'),
                 Question_Type__c = (String) q.get('questionType'),
                 Is_Required__c = q.get('isRequired') == true,
-                Extraction_Hint__c = (String) q.get('extractionHint'),
                 Category__c = (String) q.get('category')
             );
             Object sortOrderRaw = q.get('sortOrder');
