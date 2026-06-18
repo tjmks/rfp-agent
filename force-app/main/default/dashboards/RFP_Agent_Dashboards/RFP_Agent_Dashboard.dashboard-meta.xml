@@ -32,22 +32,21 @@
         <columnSize>Medium</columnSize>
         <components>
             <chartAxisRange>Auto</chartAxisRange>
-            <componentType>Bar</componentType>
+            <componentType>Donut</componentType>
             <displayUnits>Auto</displayUnits>
             <drillEnabled>false</drillEnabled>
             <drillToDetailEnabled>true</drillToDetailEnabled>
-            <expandOthers>false</expandOthers>
+            <expandOthers>true</expandOthers>
             <footer></footer>
             <header></header>
             <legendPosition>Right</legendPosition>
             <maxValuesDisplayed>10</maxValuesDisplayed>
-            <report>RFP_Agent_Reports/RFPs_by_Processing_Status</report>
-            <showPercentage>false</showPercentage>
-
-            <showTotal>false</showTotal>
-            <showValues>true</showValues>
+            <report>RFP_Agent_Reports/RFP_By_Profile</report>
+            <showPercentage>true</showPercentage>
+            <showTotal>true</showTotal>
+            <showValues>false</showValues>
             <sortBy>RowLabelAscending</sortBy>
-            <title>RFPs by Processing Status</title>
+            <title>RFPs by Extraction Profile</title>
             <useReportChart>false</useReportChart>
         </components>
     </middleSection>
