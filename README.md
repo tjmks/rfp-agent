@@ -19,14 +19,6 @@ cd rfp-agent
 
 This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile. All four Lightning record pages are automatically activated as the org default on deploy — no manual Lightning App Builder step needed.
 
-### Creating a new package version
-
-```bash
-sf package version create --package "RFP App" --definition-file config/project-scratch-def.json --installation-key-bypass --skip-validation --wait 20 --target-dev-hub <devhub-alias>
-```
-
-The new version alias is automatically appended to `sfdx-project.json`.
-
 ---
 
 ## How It Works
