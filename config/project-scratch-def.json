@@ -1,7 +1,12 @@
 {
   "orgName": "RFP App Dev",
   "edition": "Enterprise",
-  "features": ["EnableSetPasswordInApi"],
+  "features": [
+    "EnableSetPasswordInApi",
+    "Einstein1AIPlatform",
+    "EinsteinGPTForSalescloud",
+    "PromptTemplateUser"
+  ],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
