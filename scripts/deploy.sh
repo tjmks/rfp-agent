@@ -100,12 +100,7 @@ fi
 rm -f "$_seed_log"
 
 echo ""
-echo "✓ Done."
-echo ""
-echo "Manual step remaining:"
-echo "  Setup → Prompt Builder → open and Publish:"
-echo "    - RFP_Extract_Questions"
-echo "    - RFP_Reason_Questions"
+echo "✓ Done. No manual steps required."
 echo ""
 echo "Optional:"
 echo "  ./scripts/seed_default_profile.sh $TARGET_ORG"
