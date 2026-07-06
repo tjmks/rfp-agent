@@ -9,7 +9,7 @@
     </actionOverrides>
     <defaultLandingTab>RFP__c</defaultLandingTab>
     <description>RFP document extraction powered by Einstein AI</description>
-    <label>RFP App</label>
+    <label>RFP Intake App</label>
     <navType>Standard</navType>
     <tabs>standard-home</tabs>
     <tabs>RFP__c</tabs>

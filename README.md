@@ -1,6 +1,6 @@
-# RFP App
+# RFP Intake App
 
-A Salesforce application that uses Einstein Generative AI (Prompt Builder) to extract structured data and qualitative insights from RFP documents uploaded as Salesforce Files (ContentDocument).
+A Salesforce application that uses Einstein Generative AI (Prompt Builder) to extract structured data and qualitative insights from RFP documents uploaded as Salesforce Files (ContentDocument). It handles RFP *intake* — capturing and analyzing incoming RFPs — not response authoring.
 
 ## Install
 
@@ -100,7 +100,7 @@ sf org assign permset --name EinsteinGPTPromptTemplateUser --target-org <alias>
 
 ## App Home Page & Dashboard
 
-The **RFP App** (`RFP_App`) ships with a home page (`RFP_Agent_Home_Page`) that embeds a classic Salesforce dashboard. The home page is automatically assigned to the app on deploy via `actionOverrides` on the `CustomApplication` — no manual App Builder step needed.
+The **RFP Intake App** (`RFP_App`) ships with a home page (`RFP_Agent_Home_Page`) that embeds a classic Salesforce dashboard. The home page is automatically assigned to the app on deploy via `actionOverrides` on the `CustomApplication` — no manual App Builder step needed.
 
 The dashboard (`RFP_Agent_Dashboard`) has three columns:
 
