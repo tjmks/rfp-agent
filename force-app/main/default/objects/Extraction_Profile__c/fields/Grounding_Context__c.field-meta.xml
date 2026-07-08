@@ -3,6 +3,7 @@
     <fullName>Grounding_Context__c</fullName>
     <label>Grounding Context</label>
     <description>Background about the responding company — industry, products, strengths, weaknesses. Injected into both extraction and reasoning prompts for richer context.</description>
+    <inlineHelpText>Background about your company — industry, products, key strengths and weaknesses. This text is injected into every extraction and reasoning prompt so the AI answers with your company in mind. Leave blank for generic extraction.</inlineHelpText>
     <type>LongTextArea</type>
     <length>32768</length>
     <visibleLines>10</visibleLines>
