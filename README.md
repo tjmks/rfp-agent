@@ -60,8 +60,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 |---|---|---|
 | `rfpUploadAction` | Any Lightning record page via App Builder | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. Drop it directly onto any record page (e.g. the RFP page sidebar, Account page, Opportunity page) for inline access. |
 | `rfpExtractionReview` | RFP__c record page | Main review UI — shows extraction progress, results grouped by category, accept/reject/edit controls, bulk accept, and Finalize |
-| `rfpQuestionBuilder` | Extraction_Profile__c record page | View and edit profile questions; add/delete/reorder via drag-and-drop; set per-question confidence threshold (Extraction questions only), category, type, and output format; overview and edit modes. Also hosts the **Context & Grounding** editor for the profile-level grounding context applied to all prompts |
-| `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question in `rfpQuestionBuilder` |
+| `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question via the `Confidence_Threshold__c` field on each Extraction Question |
 | `rfpResultField` | Sub-component | Individual result row with accept/reject/edit controls and full keyboard navigation (Enter/Escape/j/k/e) |
 
 ## Review UI
@@ -72,7 +71,7 @@ The `rfpExtractionReview` component has four filter chips (**All / Pending / Req
 - **Bulk Accept ≥ Threshold:** Accepts all Pending results whose `Confidence_Score__c` meets or exceeds the per-question `Confidence_Threshold__c` (default 80). The UI updates immediately; a background sync reconciles with the server.
 - **Finalize button:** The commit step for the whole document. Disabled until all required fields have been reviewed (no Pending rows remain). When clicked, `RFPFinalizationService` writes every Accepted/Edited value to its mapped field on the `RFP__c` record, then sets `Status__c = 'Approved'` and `Processing_Status__c = 'Complete'`.
 
-The **Low Confidence** filter shows results where `Confidence_Score__c < Confidence_Threshold__c`. Thresholds are set per question in `rfpQuestionBuilder` (default 80; not applied to Reasoning questions).
+The **Low Confidence** filter shows results where `Confidence_Score__c < Confidence_Threshold__c`. Thresholds are set per question via the `Confidence_Threshold__c` field on each Extraction Question (default 80; not applied to Reasoning questions).
 
 In short: checkmarks are your per-field approvals; Finalize is what actually updates the record.
 
@@ -120,7 +119,7 @@ All four custom objects ship with Lightning record pages. Each page is automatic
 | Page | Layout | Key components |
 |---|---|---|
 | **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar: `rfpUploadAction` for re-running or uploading a new version. |
-| **Extraction Profile** | Header + two column | Tabs: Details / Configuration (`rfpQuestionBuilder`) / Related (Extraction Questions, RFPs using this profile) |
+| **Extraction Profile** | Header + two column | Tabs: Details / Questions &amp; Grounding (the `Grounding_Context__c` field plus the Extraction Questions and RFPs-using-this-profile related lists) |
 | **Extraction Question** | Header + two column | Tabs: Details / Results (Extraction Results for this question across all RFPs) |
 | **Extraction Result** | Header + two column | Tabs: Details (no child objects — leaf node) |
 
@@ -146,7 +145,7 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 - **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. `Extraction_Question__c` ships with an **All** list view.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
-- **Seed data** — run `./scripts/seed_default_profile.sh <alias>` to create a "Default RFP" profile (`Is_Default__c = true`) with 8 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact, Contact Email, Required Submission Format) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Alternatively, create questions manually using the `rfpQuestionBuilder` component.
+- **Seed data** — run `./scripts/seed_default_profile.sh <alias>` to create a "Default RFP" profile (`Is_Default__c = true`) with 8 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact, Contact Email, Required Submission Format) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Alternatively, create questions manually from the **Questions &amp; Grounding** tab on the Extraction Profile record page.
 
 ## Email-to-Case Auto Extraction Flow
 
