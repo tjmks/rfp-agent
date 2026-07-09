@@ -53,7 +53,6 @@ sf project deploy start \
              "StaticResource:AgentforceGuy" \
              "LightningComponentBundle:rfpUploadAction" \
              "LightningComponentBundle:rfpExtractionReview" \
-             "LightningComponentBundle:rfpQuestionBuilder" \
              "LightningComponentBundle:rfpConfidenceBadge" \
              "LightningComponentBundle:rfpResultField" \
              "FlexiPage:RFP_Record_Page" \
