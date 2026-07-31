@@ -5,6 +5,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { subscribe, unsubscribe, onError } from 'lightning/empApi';
 import getExtractionResults from '@salesforce/apex/RFPController.getExtractionResults';
 import getRFP from '@salesforce/apex/RFPController.getRFP';
+import getRFPFiles from '@salesforce/apex/RFPController.getRFPFiles';
 import updateResult from '@salesforce/apex/RFPController.updateResult';
 import bulkAccept from '@salesforce/apex/RFPController.bulkAccept';
 import finalizeRFP from '@salesforce/apex/RFPController.finalizeRFP';
@@ -16,6 +17,7 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
 
     @track results = [];
     @track rfp = {};
+    @track files = [];
     @track isBusy = false;
     @track toastMessage = null;
     @track toastVariant = 'info';
@@ -23,6 +25,7 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
 
     _wiredResultsRef;
     _wiredRFPRef;
+    _wiredFilesRef;
     _subscription;
 
     @wire(getRFP, { rfpId: '$recordId' })
@@ -38,6 +41,14 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
         this._wiredResultsRef = result;
         if (result.data) {
             this.results = result.data.map(r => ({ ...r }));
+        }
+    }
+
+    @wire(getRFPFiles, { rfpId: '$recordId' })
+    wiredFiles(result) {
+        this._wiredFilesRef = result;
+        if (result.data) {
+            this.files = result.data;
         }
     }
 
@@ -61,6 +72,7 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
                 }
                 refreshApex(this._wiredRFPRef);
                 refreshApex(this._wiredResultsRef);
+                refreshApex(this._wiredFilesRef);
             }
         }).then(sub => {
             this._subscription = sub;
@@ -192,8 +204,17 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
         return this.isBusy || this.hasRequiredPending;
     }
 
-    get noDocument() {
-        return !this.rfp?.Source_Document_Id__c;
+    get noFiles() {
+        return this.files.length === 0;
+    }
+
+    get fileSummary() {
+        const count = this.files.length;
+        return `${count} source file${count === 1 ? '' : 's'} included in the record-bound corpus`;
+    }
+
+    get viewFilesLabel() {
+        return `Open Documents (${this.files.length})`;
     }
 
     get bulkAcceptLabel() {
@@ -207,11 +228,21 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
         return base + ' slds-theme_info';
     }
 
-    handleOpenDocument() {
+    handleViewFiles() {
+        const recordIds = this.files
+            .map(file => file.documentId)
+            .filter(Boolean);
+        if (!recordIds.length) return;
+
         this[NavigationMixin.Navigate]({
             type: 'standard__namedPage',
-            attributes: { pageName: 'filePreview' },
-            state: { selectedRecordId: this.rfp?.Source_Document_Id__c }
+            attributes: {
+                pageName: 'filePreview'
+            },
+            state: {
+                recordIds: recordIds.join(','),
+                selectedRecordId: recordIds[0]
+            }
         });
     }
 

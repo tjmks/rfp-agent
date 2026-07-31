@@ -1,13 +1,25 @@
 public with sharing class RFPExtractionAction {
 
     public class Request {
-        @InvocableVariable(label='Case ID' description='Optional. Supply this or Content Document ID (or both). When Content Document ID is omitted, the action finds the first PDF attached to this Case. Throws if neither field resolves to a PDF.' required=false)
+        @InvocableVariable(
+            label='Case ID'
+            description='Optional. When Content Document ID is omitted, all supported PDF, PNG, JPEG, and JPG files linked to this Case become the RFP corpus.'
+            required=false
+        )
         public Id caseId;
 
-        @InvocableVariable(label='Content Document ID' description='Optional. Supply this or Case ID (or both). Explicit PDF to extract from — skips the automatic attachment search. Throws if neither field resolves to a PDF.' required=false)
+        @InvocableVariable(
+            label='Content Document ID'
+            description='Optional backward-compatible explicit single-file override. When supplied, only this ContentDocument is linked, even if a Case ID is also supplied.'
+            required=false
+        )
         public Id contentDocumentId;
 
-        @InvocableVariable(label='Extraction Profile ID' description='Optional. The Extraction Profile (set of questions) to run against the document. If omitted, the default active profile is used automatically. Throws if no default active profile exists.' required=false)
+        @InvocableVariable(
+            label='Extraction Profile ID'
+            description='Optional. The Extraction Profile (set of questions) to run against the record-bound Salesforce File corpus. If omitted, the default active profile is used.'
+            required=false
+        )
         public Id extractionProfileId;
 
         @InvocableVariable(label='Account ID' description='Optional. Links the created RFP record to this Account.' required=false)
@@ -24,36 +36,44 @@ public with sharing class RFPExtractionAction {
 
     @InvocableMethod(
         label='Run RFP Extraction'
-        description='Creates an RFP record and queues AI extraction on the attached PDF. Mirrors the rfpUploadAction LWC pipeline.'
+        description='Creates an RFP record, links all eligible Case files (or one explicit ContentDocument override), and queues record-bound AI extraction.'
         category='RFP Agent'
     )
     public static List<Result> execute(List<Request> requests) {
         List<Result> results = new List<Result>();
-        for (Request req : requests) {
-            results.add(process(req));
+        if (requests == null) {
+            return results;
+        }
+        for (Request request : requests) {
+            results.add(process(request));
         }
         return results;
     }
 
-    private static Result process(Request req) {
-        Result res = new Result();
-
-        Id docId = req.contentDocumentId;
-        if (docId == null && req.caseId != null) {
-            docId = findFirstPdf(req.caseId);
+    private static Result process(Request request) {
+        if (request == null) {
+            throw new RFPExtractionException('An RFP extraction request is required.');
         }
-        if (docId == null) {
+
+        List<Id> documentIds;
+        if (request.contentDocumentId != null) {
+            // Preserve the existing singular explicit override semantics.
+            documentIds = RFPFileService.validateSelectedDocuments(
+                new List<Id>{ request.contentDocumentId }
+            ).eligibleDocumentIds();
+        } else if (request.caseId != null) {
+            documentIds = RFPFileService.getEligibleCaseDocumentIds(request.caseId);
+        } else {
             throw new RFPExtractionException(
-                req.caseId != null
-                    ? 'No PDF attachment found on Case ' + req.caseId + '. Attach a PDF before triggering extraction.'
-                    : 'contentDocumentId is required when caseId is not provided.'
+                'Supply a caseId or an explicit contentDocumentId before triggering extraction.'
             );
         }
 
-        Id profileId = req.extractionProfileId;
+        Id profileId = request.extractionProfileId;
         if (profileId == null) {
             List<Extraction_Profile__c> defaults = [
-                SELECT Id FROM Extraction_Profile__c
+                SELECT Id
+                FROM Extraction_Profile__c
                 WHERE Is_Default__c = true AND Is_Active__c = true
                 ORDER BY CreatedDate ASC
                 LIMIT 1
@@ -69,41 +89,21 @@ public with sharing class RFPExtractionAction {
         RFP__c rfp = new RFP__c(
             Status__c = 'Processing',
             Processing_Status__c = 'Running AI',
-            Source_Document_Id__c = docId,
+            Source_Document_Id__c = documentIds[0],
             Extraction_Profile__c = profileId,
-            Account__c = req.accountId,
-            Opportunity__c = req.opportunityId
+            Account__c = request.accountId,
+            Opportunity__c = request.opportunityId
         );
         insert rfp;
 
-        Boolean alreadyLinked = ![
-            SELECT Id FROM ContentDocumentLink
-            WHERE ContentDocumentId = :docId AND LinkedEntityId = :rfp.Id
-            LIMIT 1
-        ].isEmpty();
-        if (!alreadyLinked) {
-            insert new ContentDocumentLink(
-                ContentDocumentId = docId,
-                LinkedEntityId = rfp.Id,
-                ShareType = 'V',
-                Visibility = 'AllUsers'
-            );
-        }
+        // One bulk link operation for every eligible Case file.  The helper
+        // skips duplicate or already-existing links without touching source
+        // ContentDocument records.
+        RFPFileService.linkDocuments(rfp.Id, documentIds);
 
         System.enqueueJob(new RFPExtractionQueueable(rfp.Id));
-        res.rfpId = rfp.Id;
-        return res;
-    }
-
-    private static Id findFirstPdf(Id caseId) {
-        List<ContentDocumentLink> links = [
-            SELECT ContentDocumentId
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId = :caseId
-              AND ContentDocument.FileExtension = 'pdf'
-            ORDER BY ContentDocument.CreatedDate ASC
-            LIMIT 1
-        ];
-        return links.isEmpty() ? null : links[0].ContentDocumentId;
+        Result result = new Result();
+        result.rfpId = rfp.Id;
+        return result;
     }
 }

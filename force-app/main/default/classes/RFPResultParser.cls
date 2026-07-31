@@ -3,8 +3,7 @@ public with sharing class RFPResultParser {
     public static List<Extraction_Result__c> parse(
         Id rfpId,
         String rawResponse,
-        List<Extraction_Question__c> questions,
-        String promptSource
+        List<Extraction_Question__c> questions
     ) {
         Map<String, Extraction_Question__c> questionById = new Map<String, Extraction_Question__c>();
         for (Extraction_Question__c q : questions) {
@@ -41,15 +40,14 @@ public with sharing class RFPResultParser {
             results.add(new Extraction_Result__c(
                 RFP__c = rfpId,
                 Extraction_Question__c = q.Id,
-                Field_Label__c = q.Name,
+                Field_Label__c = String.isBlank(q.Question_Label__c) ? q.Name : q.Question_Label__c,
                 Target_Field_API_Name__c = q.Target_Field_API_Name__c,
                 Category__c = q.Category__c,
                 Extracted_Value__c = rawValue != null ? valueToString(rawValue) : null,
                 Confidence_Score__c = confidence,
                 Citation__c = (String) entry.get('citation'),
                 Review_Status__c = 'Pending',
-                Sort_Order__c = q.Sort_Order__c,
-                Prompt_Source__c = promptSource
+                Sort_Order__c = q.Sort_Order__c
             ));
         }
         return results;

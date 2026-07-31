@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Source_Document_Id__c</fullName>
+    <description>Temporary compatibility pointer to the first or primary Salesforce File for legacy previews. It is not the extraction corpus; Prompt Builder grounds from all supported Files linked to the RFP.</description>
     <externalId>false</externalId>
     <label>Source Document Id</label>
     <length>18</length>

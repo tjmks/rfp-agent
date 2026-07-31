@@ -12,6 +12,51 @@
     padding: 0.5rem 0 0.75rem;
 }
 
+.review-toolbar__row {
+    gap: 0.75rem;
+}
+
+.review-toolbar__status {
+    min-width: 0;
+}
+
+.review-toolbar__actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.toolbar-action {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem;
+    line-height: 1.25rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .review-toolbar__row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .review-toolbar__status {
+        flex: 1 1 100%;
+    }
+
+    .review-toolbar__actions {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
 .required-notice {
     color: #c23934;
     font-weight: 600;

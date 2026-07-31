@@ -4,9 +4,9 @@
         <!-- Processing spinner -->
         <template if:true={isProcessing}>
             <div class="slds-align_absolute-center slds-p-around_large">
-                <lightning-spinner alternative-text="Extracting data from document..." size="medium"></lightning-spinner>
+                <lightning-spinner alternative-text="Extracting data from source documents..." size="medium"></lightning-spinner>
                 <p class="slds-m-top_medium slds-text-align_center slds-text-color_weak">
-                    Extracting data from document…
+                    Extracting data from source documents…
                 </p>
             </div>
         </template>
@@ -22,47 +22,53 @@
         <!-- Main review layout -->
         <template if:true={showReview}>
             <!-- Toolbar -->
-            <div class="review-toolbar slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
-                <div class="slds-col">
-                    <span class="slds-text-body_small slds-text-color_weak">
-                        {pendingCount} of {results.length} pending
-                        <template if:true={hasRequiredPending}>
-                            &nbsp;·&nbsp;
-                            <span class="required-notice">{requiredPendingCount} required remaining</span>
-                        </template>
-                    </span>
-                    <div class="review-progress slds-m-top_xx-small">
-                        <lightning-progress-bar
-                            value={progressPercent}
-                            size="small"
-                            variant="circular">
-                        </lightning-progress-bar>
+            <div class="review-toolbar slds-m-bottom_small">
+                <div class="review-toolbar__row slds-grid slds-grid_vertical-align-center">
+                    <div class="review-toolbar__status slds-col">
+                        <span class="slds-text-body_small slds-text-color_weak">
+                            {pendingCount} of {results.length} pending
+                            <template if:true={hasRequiredPending}>
+                                &nbsp;·&nbsp;
+                                <span class="required-notice">{requiredPendingCount} required remaining</span>
+                            </template>
+                        </span>
+                        <div class="review-progress slds-m-top_xx-small">
+                            <lightning-progress-bar
+                                value={progressPercent}
+                                size="small"
+                                variant="circular">
+                            </lightning-progress-bar>
+                        </div>
+                    </div>
+                    <div class="review-toolbar__actions" role="group" aria-label="Review actions">
+                        <button
+                            type="button"
+                            class="slds-button slds-button_neutral toolbar-action"
+                            title="Open all linked source documents"
+                            onclick={handleViewFiles}
+                            disabled={noFiles}>
+                            <lightning-icon icon-name="utility:open_folder" size="x-small" alternative-text=""></lightning-icon>
+                            <span class="slds-m-left_x-small">{viewFilesLabel}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="slds-button slds-button_neutral toolbar-action"
+                            onclick={handleBulkAccept}
+                            disabled={isBusy}>
+                            <lightning-icon icon-name="utility:check" size="x-small" alternative-text=""></lightning-icon>
+                            <span class="slds-m-left_x-small">{bulkAcceptLabel}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="slds-button slds-button_brand toolbar-action"
+                            onclick={handleFinalize}
+                            disabled={finalizeDisabled}>
+                            <span>Save RFP Extraction</span>
+                            <lightning-icon icon-name="utility:forward" variant="inverse" size="x-small" alternative-text=""></lightning-icon>
+                        </button>
                     </div>
                 </div>
-                <div class="slds-col slds-text-align_right slds-grid slds-grid_align-end slds-grid_vertical-align-center">
-                    <lightning-button
-                        label="Open Document"
-                        icon-name="utility:preview"
-                        onclick={handleOpenDocument}
-                        disabled={noDocument}
-                        class="slds-m-right_x-small">
-                    </lightning-button>
-                    <lightning-button
-                        label={bulkAcceptLabel}
-                        icon-name="utility:check"
-                        onclick={handleBulkAccept}
-                        disabled={isBusy}
-                        class="slds-m-right_x-small">
-                    </lightning-button>
-                    <lightning-button
-                        label="Save RFP Extraction"
-                        variant="brand"
-                        icon-name="utility:forward"
-                        icon-position="right"
-                        onclick={handleFinalize}
-                        disabled={finalizeDisabled}>
-                    </lightning-button>
-                </div>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">{fileSummary}</p>
             </div>
 
             <!-- Filter chips -->

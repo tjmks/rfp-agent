@@ -1,6 +1,6 @@
 # RFP Intake App
 
-A Salesforce application that uses Einstein Generative AI (Prompt Builder) to extract structured data and qualitative insights from RFP documents uploaded as Salesforce Files (ContentDocument). It handles RFP *intake* — capturing and analyzing incoming RFPs — not response authoring.
+A Salesforce application that uses Einstein Generative AI (Prompt Builder) to extract structured data and qualitative insights from one or more RFP source documents uploaded as Salesforce Files. It handles RFP *intake* — capturing and analyzing incoming RFPs — not response authoring.
 
 ## Install
 
@@ -23,11 +23,11 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 ## How It Works
 
-1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads an RFP PDF, selects an **Extraction Profile**, and clicks Submit. This creates an `RFP__c` record linked to the uploaded `ContentDocument` and immediately enqueues an `RFPExtractionQueueable` job. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction automatically when Email-to-Case creates a Case with a PDF attachment.
-2. The queueable splits the profile's questions by `Question_Type__c` and runs **two passes** over the document:
-   - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, Gemini 3.5 Flash) — strict structured data (dates, contacts, budget).
-   - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, Opus 4.8) — open-ended analysis (risks, win themes).
-   Both templates receive the document as a `ContentDocument` input and return the **same JSON contract**. Each template can be overridden per profile via `Extraction_Template__c` / `Reasoning_Template__c` on the profile record.
+1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more PDF, PNG, JPEG, or JPG files, selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction automatically when Email-to-Case creates a Case with attachments.
+2. The queueable validates the complete supported file corpus linked to the RFP, splits the profile's questions by `Question_Type__c`, and runs **two passes** over that same record-bound corpus:
+   - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, target-compatible GPT5Mini) — strict structured data (dates, contacts, budget).
+   - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, target-compatible GPT54) — open-ended analysis (risks, win themes).
+   Both templates receive the RFP record and questions JSON; Prompt Builder resolves all linked files through the related-list resource. Each template can be overridden per profile via `Extraction_Template__c` / `Reasoning_Template__c`, but an override must adopt the same three-input contract and related-list provider.
 3. Einstein LLM returns a JSON array per pass. `RFPResultParser` parses both into `Extraction_Result__c` records.
 4. The queueable rolls up `Overall_Confidence__c` from **extraction results only** (reasoning confidence is fuzzy) and fires the `RFP_Extraction_Complete__e` platform event.
 5. The user reviews results in the `rfpExtractionReview` component (lives on the RFP record page), accepting or rejecting each field.
@@ -37,7 +37,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 | Object | Purpose |
 |---|---|
-| `RFP__c` | Root record — links to Account, Opportunity, source document, and extraction profile |
+| `RFP__c` | Root record — links to Account, Opportunity, all source documents through Salesforce Files, and an extraction profile. `Source_Document_Id__c` is retained only as a temporary legacy/primary preview pointer. |
 | `Extraction_Profile__c` | Named set of extraction questions (e.g. "Standard RFP Profile"). Optional `Extraction_Template__c` and `Reasoning_Template__c` fields override the org-default Prompt Builder template API names for that profile. |
 | `Extraction_Question__c` | Individual question: label, question text, output type, `Question_Type__c` (`Extraction` or `Reasoning`), and `Confidence_Threshold__c` (Extraction only — ignored and not shown in the builder for Reasoning questions) |
 | `Extraction_Result__c` | One result per question per RFP — extracted value, confidence score, review status |
@@ -48,6 +48,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 | Class | Purpose |
 |---|---|
 | `RFPController` | `@AuraEnabled` methods for LWC — load RFP, profiles, results; trigger extraction; bulk accept |
+| `RFPFileService` | Validates supported file types, count/aggregate size, access, duplicate-safe links, and session-only unlinking |
 | `RFPExtractionAction` | `@InvocableMethod` entry point for Flow and Process Builder — same pipeline as the LWC; accepts `caseId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
 | `RFPResultParser` | Parses and validates the LLM JSON response into `Extraction_Result__c` records |
@@ -58,14 +59,14 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 | Component | Where to add | Purpose |
 |---|---|---|
-| `rfpUploadAction` | Any Lightning record page via App Builder | File upload form — attach PDF, select extraction profile, link to Account/Opportunity, and kick off extraction. Drop it directly onto any record page (e.g. the RFP page sidebar, Account page, Opportunity page) for inline access. |
+| `rfpUploadAction` | Any Lightning record page via App Builder | Multi-file upload form — attach PDF/PNG/JPEG/JPG files, select an extraction profile, link to Account/Opportunity, and kick off extraction. Existing RFP files remain in the corpus; removing a newly uploaded file removes only its current-session link. |
 | `rfpExtractionReview` | RFP__c record page | Main review UI — shows extraction progress, results grouped by category, accept/reject/edit controls, bulk accept, and Finalize |
 | `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question via the `Confidence_Threshold__c` field on each Extraction Question |
 | `rfpResultField` | Sub-component | Individual result row with accept/reject/edit controls and full keyboard navigation (Enter/Escape/j/k/e) |
 
 ## Review UI
 
-The `rfpExtractionReview` component has four filter chips (**All / Pending / Required / Low Confidence**) and three approval actions:
+The `rfpExtractionReview` component has four filter chips (**All / Pending / Required / Low Confidence**) and three approval actions. Its toolbar reports how many source files are in the record-bound corpus and navigates to the RFP Files related list instead of opening one singular source document.
 
 - **Row checkmark (per field):** Marks a single extracted value as Accepted. You can also edit the value (saves as Edited) or reject it. These actions only update the `Review_Status__c` on that `Extraction_Result__c` record — nothing is written to the RFP yet.
 - **Bulk Accept ≥ Threshold:** Accepts all Pending results whose `Confidence_Score__c` meets or exceeds the per-question `Confidence_Threshold__c` (default 80). The UI updates immediately; a background sync reconciles with the server.
@@ -77,20 +78,26 @@ In short: checkmarks are your per-field approvals; Finalize is what actually upd
 
 ## Prompt Builder Templates
 
-Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`), both receiving a `ContentDocument` file input and a `QuestionsJSON` string, both returning the same `[{ id, value, confidence, citation }]` JSON array:
+Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`) share the same contract and return the same `[{ id, value, confidence, citation }]` JSON array:
+
+- required `RFPRecord` (`SOBJECT://RFP__c`)
+- required `QuestionsJSON` (`primitive://String`)
+- optional `GroundingContext` (`primitive://String`)
+
+Neither default template declares `RFPDocument`. Both resolve the complete corpus with the server-validated `{!$RelatedList:RFPRecord.CombinedAttachments.Records}` resource, using the `RFPRecord` Flex input alias as the parent boundary. In this org, the otherwise plausible object-qualified `{!$RelatedList:RFP__c.CombinedAttachments.Records}` form was rejected by Metadata API validation. Salesforce Files must be visible to the running user, and the RFP page layout must expose the Files/related-list configuration used by the provider. The implementation rejects unsupported extensions and a corpus over 10 files or 15 MB before a model call; provider/model-specific limits can be stricter.
 
 | Template | Handles | Intended model |
 |---|---|---|
-| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **Gemini 3.5 Flash** |
-| `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **Opus 4.8** |
+| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **sfdc_ai__DefaultGPT5Mini** in the validated target org |
+| `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **sfdc_ai__DefaultGPT54** in the validated target org |
 
-**Model pinning:** the templates ship with their intended models set in the XML (`sfdc_ai__DefaultVertexAIGemini35Flash` for `RFP_Extract_Questions`, `sfdc_ai__DefaultBedrockAnthropicClaude48Opus` for `RFP_Reason_Questions`). If a model isn't available in a given org, open the template in Prompt Builder and set the model in the model picker, or replace the `<primaryModel>` value in the template XML with the exact model API name from your org's Einstein model list and redeploy. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
+**Model pinning:** keep each target org's active model choice when promoting a new version. If a model isn't available in another org, open the template in Prompt Builder and set the model in the model picker, or replace `<primaryModel>` with the exact model API name from that org's Einstein model list and redeploy. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
 
 **Per-profile template overrides:** set `Extraction_Template__c` and/or `Reasoning_Template__c` on an `Extraction_Profile__c` record to point that profile at a different Prompt Builder template API name. Leave blank to use the org defaults above. This lets you maintain, for example, a "Government RFP" profile that uses a compliance-focused extraction template while the standard profile uses the defaults — without any Apex changes.
 
 ## Permission Set
 
-`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to all permissionable fields, tab visibility for all four custom object tabs, app visibility for `RFP_App`, and access to the Apex classes. Assign this plus the standard **Einstein Generative AI User** permission set to any user who needs to run extractions.
+`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to all permissionable fields, and access to the Apex classes. The optional `RFP_App` and custom-tab metadata is deployed independently and is deliberately not hard-referenced by this permission set, so the set remains deployable in orgs where those components are absent. Assign this plus the standard **Einstein Generative AI User** permission set to any user who needs to run extractions.
 
 ```bash
 sf org assign permset --name RFP_Agent --target-org <alias>
@@ -154,7 +161,7 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 **What it does:**
 1. Triggers after a Case is created with `Origin = Email` (async after commit, so all email attachments are already linked).
 2. Calls the `RFPExtractionAction` invocable class with the Case ID and Account ID.
-3. The class finds the **first PDF** attached to the Case, resolves the **default active Extraction Profile**, creates an `RFP__c` record, and enqueues the extraction job.
+3. The class links every supported PDF/PNG/JPEG/JPG attached to the Case, resolves the **default active Extraction Profile**, creates an `RFP__c` record, and enqueues the extraction job.
 
 **To activate:** Setup → Flows → *RFP Email Case Auto Extraction* → Activate.
 
@@ -164,10 +171,10 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 
 | Input | Type | Required | Description |
 |---|---|---|---|
-| `caseId` | Id | — | When `contentDocumentId` is omitted, searches for the first PDF attached to this Case |
-| `contentDocumentId` | Id | — | Explicit PDF to extract from; overrides auto-discovery |
+| `caseId` | Id | — | When `contentDocumentId` is omitted, all supported Case files become the RFP corpus |
+| `contentDocumentId` | Id | — | Singular explicit file override; when supplied it overrides Case auto-discovery |
 | `extractionProfileId` | Id | — | Extraction profile to use; defaults to the active default profile |
 | `accountId` | Id | — | Account to link to the created RFP |
 | `opportunityId` | Id | — | Opportunity to link to the created RFP |
 
-The action returns an `rfpId` output. It throws a descriptive `RFPExtractionException` if no PDF can be found or no active default profile exists — the flow will fault with that message, surfacing the issue rather than silently dropping the work.
+The action returns an `rfpId` output. It throws a descriptive `RFPExtractionException` if no supported Case file can be found or no active default profile exists — the flow will fault with that message, surfacing the issue rather than silently dropping the work.

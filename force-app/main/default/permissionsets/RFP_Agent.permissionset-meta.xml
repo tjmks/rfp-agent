@@ -3,30 +3,6 @@
     <label>RFP Agent</label>
     <description>Grants access to all RFP Agent objects, fields, Apex classes, and LWC components. Also requires the Einstein Generative AI User permission set for AI processing.</description>
 
-    <!-- App visibility -->
-    <applicationVisibilities>
-        <application>RFP_App</application>
-        <visible>true</visible>
-    </applicationVisibilities>
-
-    <!-- Tab visibility -->
-    <tabSettings>
-        <tab>RFP__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Extraction_Profile__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Extraction_Question__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Extraction_Result__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-
     <!-- Object permissions -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
@@ -105,7 +81,6 @@
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Sort_Order__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Target_Field_API_Name__c</field><readable>true</readable></fieldPermissions>
     <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Category__c</field><readable>true</readable></fieldPermissions>
-    <fieldPermissions><editable>false</editable><field>Extraction_Result__c.Prompt_Source__c</field><readable>true</readable></fieldPermissions>
 
     <!-- Apex class access -->
     <classAccesses>
@@ -114,6 +89,10 @@
     </classAccesses>
     <classAccesses>
         <apexClass>RFPExtractionAction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RFPFileService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -132,9 +111,4 @@
         <apexClass>RFPExtractionException</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <classAccesses>
-        <apexClass>RFPInstallHandler</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-
 </PermissionSet>

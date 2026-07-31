@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>62.0</apiVersion>
-    <description>Automatically runs RFP extraction when a Case is created via Email-to-Case. Finds the first PDF attached to the Case and uses the default active Extraction Profile. Ships as Draft — activate in Setup → Flows when email-triggered auto-extraction is needed.</description>
+    <description>Automatically runs RFP extraction when a Case is created via Email-to-Case. Links every supported PDF, PNG, JPEG, and JPG Salesforce File attached to the Case into the record-bound RFP corpus and uses the default active Extraction Profile. Ships as Draft — activate in Setup → Flows when email-triggered auto-extraction is needed.</description>
     <environments>Default</environments>
     <interviewLabel>RFP Email Case Auto Extraction {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RFP Email Case Auto Extraction</label>
@@ -41,7 +41,7 @@
     </start>
     <status>Draft</status>
     <actionCalls>
-        <description>Passes the Case ID and Account ID to RFPExtractionAction, which finds the first attached PDF, resolves the default Extraction Profile, creates an RFP record, and enqueues the AI extraction job.</description>
+        <description>Passes the Case ID and Account ID to RFPExtractionAction, which links all eligible Case files, resolves the default Extraction Profile, creates an RFP record, and enqueues the AI extraction job. A supplied Content Document ID remains a backward-compatible single-file override.</description>
         <name>Run_RFP_Extraction</name>
         <label>Run RFP Extraction</label>
         <locationX>176</locationX>

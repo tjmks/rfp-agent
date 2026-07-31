@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_7</activeVersionIdentifier>
     <developerName>RFP_Extract_Questions</developerName>
+    <activeVersionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_11</activeVersionIdentifier>
     <masterLabel>RFP Extract Questions</masterLabel>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>
     <templateVersions>
-        <versionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_7</versionIdentifier>
         <inputs>
-            <apiName>RFPDocument</apiName>
-            <!-- TODO: Verify correct definition type for ContentDocument file input.
-                 Create a test template with a file input in Prompt Builder UI,
-                 retrieve it, and copy the definition value here. -->
-            <definition>SOBJECT://ContentDocument</definition>
-            <masterLabel>RFP Document</masterLabel>
-            <referenceName>Input:RFPDocument</referenceName>
+            <apiName>RFPRecord</apiName>
+            <definition>SOBJECT://RFP__c</definition>
+            <masterLabel>RFP Record</masterLabel>
+            <referenceName>Input:RFPRecord</referenceName>
             <required>true</required>
         </inputs>
         <inputs>
@@ -25,19 +21,26 @@
             <required>true</required>
         </inputs>
         <inputs>
-            <apiName>RFPRecord</apiName>
-            <definition>SOBJECT://RFP__c</definition>
-            <masterLabel>RFP Record</masterLabel>
-            <referenceName>Input:RFPRecord</referenceName>
-            <required>true</required>
+            <apiName>GroundingContext</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Grounding Context</masterLabel>
+            <referenceName>Input:GroundingContext</referenceName>
+            <required>false</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultVertexAIGemini35Flash</primaryModel>
+        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
         <status>Published</status>
-        <content>You are an expert RFP analyst. Read the attached document carefully, then answer each question in the list below using only information found in the document.
-Document:
-{!$Input:RFPDocument}
+        <content>You are an expert RFP analyst. Read every supplied source document carefully, then answer each question using only facts grounded in the source documents. The RFP record and related files define the corpus boundary; do not use unrelated records or files.
 
-RFP: {!$Input:RFPRecord.Name}
+Reason over all supplied files together. If documents contain conflicting values, report the conflict and cite both source filenames rather than silently choosing one. If one statement is explicitly newer or more authoritative and that makes a defensible choice possible, use it and explain the basis in the citation. Include the source filename in every citation when it is available. Grounding context is optional background about the responding company; it is not RFP content and must never supply an extracted answer.
+
+RFP record:
+{!$Input:RFPRecord.Name}
+
+Optional grounding context:
+{!$Input:GroundingContext}
+
+Source documents:
+{!$RelatedList:RFPRecord.CombinedAttachments.Records}
 
 Questions:
 {!$Input:QuestionsJSON}
@@ -48,9 +51,9 @@ Return ONLY a valid JSON array — one entry per question, in the same order:
 [
   {
     "id": "&lt;question id&gt;",
-    "value": &lt;value matching output_type, or null if not found in the document&gt;,
+    "value": &lt;value matching output_type, or null if not found in the source documents&gt;,
     "confidence": &lt;decimal 0.0-1.0 reflecting how certain you are&gt;,
-    "citation": "&lt;brief excerpt or description (≤100 words) of the document passage(s) supporting this value, or null&gt;"
+    "citation": "&lt;brief source filename plus excerpt or description (≤100 words) supporting this value, or a concise description of a conflict, or null&gt;"
   }
 ]
 
@@ -63,7 +66,23 @@ output_type values and the expected format for value:
 - Boolean: JSON true or false
 - List: a JSON array of strings
 
-If a question cannot be answered from the document, set value to null and confidence to 0.0.
-Do not include any text, explanation, or markdown outside the JSON array.</content>
+If a question cannot be answered from the source documents, set value to null and confidence to 0.0. Do not include any text, explanation, or markdown outside the JSON array.</content>
+        <templateDataProviders>
+            <definition>invocable://getRelatedList</definition>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>parentRecordId</parameterName>
+                <valueExpression>{!$Input:RFPRecord.Id}</valueExpression>
+            </parameters>
+            <parameters>
+                <definition>primitive://String</definition>
+                <isRequired>true</isRequired>
+                <parameterName>relatedListName</parameterName>
+                <valueExpression>CombinedAttachments</valueExpression>
+            </parameters>
+            <referenceName>RelatedList:RFPRecord.CombinedAttachments.Records</referenceName>
+        </templateDataProviders>
+        <versionIdentifier>up75sB/ZAU5Mdzo6W4A4x7014il3wVgzAznBn+9xQRM=_11</versionIdentifier>
     </templateVersions>
 </GenAiPromptTemplate>
