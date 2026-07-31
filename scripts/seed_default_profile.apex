@@ -10,14 +10,14 @@ List<Extraction_Profile__c> existing = [
 if (existing.isEmpty()) {
     profile = new Extraction_Profile__c(
         Name = PROFILE_NAME,
-        Description__c = 'Out-of-the-box starter profile covering the fields and analysis most response teams need on every RFP.',
+        Description__c = 'Out-of-the-box starter profile covering generic fields and analysis',
         Is_Active__c = true,
         Is_Default__c = true
     );
     insert profile;
 } else {
     profile = existing[0];
-    profile.Description__c = 'Out-of-the-box starter profile covering the fields and analysis most response teams need on every RFP.';
+    profile.Description__c = 'Out-of-the-box starter profile covering generic fields and analysis';
     profile.Is_Active__c = true;
     profile.Is_Default__c = true;
     update profile;
