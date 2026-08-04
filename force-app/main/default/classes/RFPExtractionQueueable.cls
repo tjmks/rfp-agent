@@ -48,7 +48,7 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
             String groundingContext = rfp.Extraction_Profile__r?.Grounding_Context__c;
 
             List<Extraction_Question__c> allQuestions = [
-                SELECT Id, Name, Question_Label__c, Question_Text__c, Extraction_Hint__c, Output_Type__c,
+                SELECT Id, Name, Question_Text__c, Extraction_Hint__c, Output_Type__c,
                        Question_Type__c, Is_Required__c, Sort_Order__c,
                        Target_Field_API_Name__c, Confidence_Threshold__c, Category__c
                 FROM Extraction_Question__c
@@ -169,7 +169,7 @@ public with sharing class RFPExtractionQueueable implements Queueable, Database.
             }
             qs.add(new Map<String, String>{
                 'id' => q.Id,
-                'label' => String.isBlank(q.Question_Label__c) ? q.Name : q.Question_Label__c,
+                'label' => q.Name,
                 'question_text' => questionText,
                 'output_type' => q.Output_Type__c
             });

@@ -293,7 +293,7 @@ private class RFPMultiDocumentTest {
 
     private static Extraction_Question__c createQuestion(Extraction_Profile__c profile, String name) {
         Extraction_Question__c question = new Extraction_Question__c(
-            Question_Label__c = name,
+            Name = name,
             Extraction_Profile__c = profile.Id,
             Question_Text__c = 'What MULTIDOC-TEST evidence is present across all source files?',
             Output_Type__c = 'Text',

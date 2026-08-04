@@ -1,0 +1,4 @@
+interface:
+  display_name: "RFP Intake"
+  short_description: "Configure RFP demo intake profiles"
+  default_prompt: "Use $rfp-intake to start guided RFP App setup, then ask me for the evaluator company, RFP sender context or infer, and Salesforce upload choice."
