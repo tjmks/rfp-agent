@@ -174,11 +174,21 @@ Create a focused reusable profile with 7-15 Extraction questions and 2-6 Reasoni
 
 Use only supported `Output_Type__c` values: `Text`, `Long Text`, `Number`, `Date`, `Currency`, `Boolean`, `List`.
 
-The app prompt currently serializes question `id`, `label`, `question_text`, and `output_type`. Put all model-critical instructions in `Question_Text__c`; use `Extraction_Hint__c` only as a helpful UI/admin note unless the local code shows it is included in the prompt payload.
+The app prompt serializes question `id`, `label`, `question_text`, and `output_type`. The current queueable also appends a nonblank `Extraction_Hint__c` to `question_text`, so keep model-critical guidance in `Question_Text__c` and use the hint for concise supporting guidance.
+
+When an RFP has multiple supported Salesforce Files, the prompt grounds against
+the complete record-bound corpus. Design reusable questions that work across
+the set of source documents, not questions that assume a single example file.
 
 ### Extraction Questions
 
-Extraction questions are lookup questions handled by a GPT-4-level model. They must be answerable from the RFP document itself and should return details that are essentially stated verbatim in the document. They should not ask the model to analyze, synthesize, compare against evaluator capabilities, infer strategy, or produce a broad narrative summary.
+Extraction questions are lookup questions handled by the extraction prompt pass
+(the repository currently defaults to `sfdc_ai__DefaultGPT5Mini`, but model
+selection is deployment-specific). They must be answerable from the source
+documents themselves and should return details that are essentially stated
+verbatim in the documents. They should not ask the model to analyze, synthesize,
+compare against evaluator capabilities, infer strategy, or produce a broad
+narrative summary.
 
 Always include the basic fields every RFP team needs unless the user explicitly excludes them:
 
@@ -213,7 +223,13 @@ Mark only workflow-blocking fields as `Is_Required__c = true`; too many required
 
 ### Reasoning Questions
 
-Reasoning questions are the open-ended analysis path. They should combine each RFP document with evaluator context to produce decision-useful analysis. They should be specific to the evaluator company, but sender-neutral enough to work for any future RFP. The answer can become sender-specific at extraction time because the model will read that RFP.
+Reasoning questions are the open-ended analysis path. They should combine the
+complete RFP source-document corpus with evaluator context to produce
+decision-useful analysis (the repository currently defaults to
+`sfdc_ai__DefaultGPT54`, but model selection is deployment-specific). They
+should be specific to the evaluator company, but sender-neutral enough to work
+for any future RFP. The answer can become sender-specific at extraction time
+because the model reads the linked source documents.
 
 Include questions such as:
 

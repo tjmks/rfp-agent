@@ -214,7 +214,7 @@ export default class RfpExtractionReview extends NavigationMixin(LightningElemen
     }
 
     get viewFilesLabel() {
-        return `Open Documents (${this.files.length})`;
+        return `View Files (${this.files.length})`;
     }
 
     get bulkAcceptLabel() {

@@ -1,6 +1,6 @@
 # Salesforce Record Page Deployment Guide
 
-This guide covers how to build, configure, and deploy Salesforce record pages with related lists, page layouts, org-wide defaults, and permission sets. All examples are drawn from this repo.
+This guide covers how to build, configure, and deploy Salesforce record pages with related lists, page layouts, org-wide defaults, and permission sets. The examples are drawn from this repo; the final section matches the staged behavior of `scripts/deploy.sh`.
 
 ---
 
@@ -193,7 +193,8 @@ A complete permission set for a record-page-driven app typically grants:
 
 ### Field-level security
 
-Fields are either editable or read-only. Fields not listed are hidden.
+Fields are either editable or read-only. Fields not listed receive no access from
+this permission set; a profile or another permission set may still grant access.
 
 ```xml
 <fieldPermissions>
@@ -228,36 +229,59 @@ sf org assign permset --name RFP_Agent --target-org "$TARGET_ORG"
 sf org assign permset --name EinsteinGPTPromptTemplateUser --target-org "$TARGET_ORG"
 ```
 
-- Assign all custom permission sets AND any standard Salesforce permission sets required by the feature (e.g., `EinsteinGPTPromptTemplateUser` for Prompt Builder / Einstein AI).
+- Assign all custom permission sets and the org's Prompt Builder execution permission (the repository script attempts `EinsteinGPTPromptTemplateUser`; current orgs may expose the equivalent `Execute Prompt Templates` permission through Prompt Template Manager).
 - This step must run after the full metadata deploy so the permission set metadata exists in the org.
 
 ---
 
 ## 5. Deployment Order
 
-Some metadata types depend on others. Follow this order to avoid validation errors:
+Some metadata types depend on others. The repository's staged order is:
 
-1. **Objects + Apex + LWC + FlexiPages first** — layouts reference objects and FlexiPages reference Apex/LWC; both fail if the dependency doesn't exist yet.
-2. **Full source deploy second** — includes layouts, permission sets, tabs, dashboards, static resources.
-3. **Assign permission sets** — run `sf org assign permset` after metadata is in the org.
-4. **Seed data last** — run any anonymous Apex scripts that create configuration records.
+1. **Prerequisite pass** — custom objects, platform event, Apex classes, static resource, LWCs, and record pages. This makes `RFP__c.enableFeeds=true` live before the Files-bearing layout is validated.
+2. **Full source pass** — layouts, prompt templates, Flow, app/home page, permission set, tabs, dashboard, and reports.
+3. **Optional source pass** — the Account layout under `optional/`, which is only applicable in orgs that contain the referenced SDO metadata.
+4. **Assign permission sets** — run `sf org assign permset` after metadata is in the org.
+5. **Seed data** — refresh the default extraction profile with anonymous Apex.
 
-Example two-pass approach from `scripts/deploy.sh`:
+The first two passes are implemented in `scripts/deploy.sh` as:
 
 ```bash
-# Pass 1: objects, Apex, LWC, FlexiPages
+# Pass 1: prerequisite metadata
 sf project deploy start \
-  --source-dir force-app/main/default/objects \
-  --source-dir force-app/main/default/classes \
-  --source-dir force-app/main/default/lwc \
-  --source-dir force-app/main/default/flexipages \
-  --target-org "$TARGET_ORG"
+  --metadata "CustomObject:RFP__c" \
+             "CustomObject:Extraction_Profile__c" \
+             "CustomObject:Extraction_Question__c" \
+             "CustomObject:Extraction_Result__c" \
+             "CustomObject:RFP_Extraction_Complete__e" \
+             "ApexClass:RFPController" \
+             "ApexClass:RFPExtractionAction" \
+             "ApexClass:RFPExtractionQueueable" \
+             "ApexClass:RFPExtractionException" \
+             "ApexClass:RFPResultParser" \
+             "ApexClass:RFPFileService" \
+             "ApexClass:RFPFinalizationService" \
+             "ApexClass:RFPInstallHandler" \
+             "StaticResource:AgentforceGuy" \
+             "LightningComponentBundle:rfpUploadAction" \
+             "LightningComponentBundle:rfpExtractionReview" \
+             "LightningComponentBundle:rfpConfidenceBadge" \
+             "LightningComponentBundle:rfpResultField" \
+             "FlexiPage:RFP_Record_Page" \
+             "FlexiPage:Extraction_Profile_Record_Page" \
+             "FlexiPage:Extraction_Question_Record_Page" \
+             "FlexiPage:Extraction_Result_Record_Page" \
+  --target-org "$TARGET_ORG" --wait 30 --concise
 
 # Pass 2: everything else
 sf project deploy start \
   --source-dir force-app \
-  --target-org "$TARGET_ORG"
+  --target-org "$TARGET_ORG" --wait 30 --concise
 ```
+
+The script then attempts the `optional/` Account-layout deploy, assigns
+`RFP_Agent` and `EinsteinGPTPromptTemplateUser`, and runs
+`scripts/seed_default_profile.apex`.
 
 ---
 

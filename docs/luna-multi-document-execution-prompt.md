@@ -1,5 +1,11 @@
 # Luna Execution Prompt
 
+> **Historical execution prompt.** The multi-document feature described here is
+> implemented in the repository. This file is retained as an audit trail for
+> the original execution; its original instruction not to commit or push was
+> superseded when the user explicitly requested the documentation commit and
+> push.
+
 You are Luna operating at maximum effort. Work directly in:
 
 `/Users/tmuenks/coding/projects/rfp_agent`
@@ -48,9 +54,9 @@ Execution requirements:
 1. Inspect `git status` and take a fresh read-only target-org metadata/data
    snapshot outside the repo.
 2. Prove the exact related-list file merge resource through Prompt Builder or
-   a safely retrieved proof template. Use
-   `{!$RelatedList:RFP__c.CombinedAttachments.Records}` only after confirming
-   how the org serializes the resource.
+   a safely retrieved proof template. The final source uses
+   `{!$RelatedList:RFPRecord.CombinedAttachments.Records}` because the
+   object-qualified form was rejected by Metadata API validation.
 3. Implement the common three-input template contract:
    `RFPRecord`, `QuestionsJSON`, and optional `GroundingContext`.
 4. Remove the explicit `RFPDocument` input and Apex binding.
@@ -95,3 +101,13 @@ When finished, report:
 
 If blocked, exhaust safe diagnostics and alternatives first. Then report the
 precise blocker, evidence, and the smallest user action needed.
+
+## Repository result
+
+The current source implements the common three-input contract, record-bound
+multi-file grounding, multi-file LWC/controller linking, all-eligible-Case
+invocable behavior, the compatibility `contentDocumentId` override, and
+pre-invocation corpus validation. The active source template versions are
+recorded in the metadata files; the test class is
+`force-app/main/default/classes/RFPMultiDocumentTest.cls` and the proof template
+is `force-app/main/default/genAiPromptTemplates/MULTIDOC_TEST_RelatedListProof.genAiPromptTemplate-meta.xml`.

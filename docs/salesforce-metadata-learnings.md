@@ -33,7 +33,7 @@ Files cannot be added to a custom object layout using standard attachment names.
 | `<relatedList>` in layout XML | `RelatedFileList` |
 | `relatedListApiName` in FlexiPage | `AttachedContentDocuments` |
 
-These two identifiers refer to the same related list but use different names depending on context. `CombinedAttachments`, `ContentDocumentLinks`, `Attachments`, `NotesAndAttachments` all fail in layout XML.
+These two identifiers refer to the same file-related surface but use different names depending on context. `CombinedAttachments` is the Prompt Builder related-list provider name; it is not the value to use in layout XML. `ContentDocumentLinks`, `Attachments`, and `NotesAndAttachments` also fail in layout XML.
 
 `RelatedFileList` in the layout also requires `<enableFeeds>true</enableFeeds>` on the object — the layout validator rejects it until feeds are enabled in the org.
 
@@ -43,12 +43,18 @@ These two identifiers refer to the same related list but use different names dep
 
 When adding the Files related list to a custom object for the first time, a single-batch deploy of all three components fails because the layout validator checks whether feeds are enabled at validation time, not just at apply time.
 
-**Required sequence:**
+**Required dependency:** `<enableFeeds>true</enableFeeds>` must be live before a
+layout containing `RelatedFileList` is validated. The repository's validated
+deployment script satisfies this with two passes:
 
-1. Deploy the object with `<enableFeeds>true</enableFeeds>` alone
-2. Deploy the layout (with `RelatedFileList`) and the FlexiPage (with `AttachedContentDocuments`) together
+1. Deploy the custom objects, Apex classes, LWCs, and record pages. This makes
+   `RFP__c.enableFeeds=true` live and resolves the page/component references.
+2. Deploy the full source, which adds the layouts (including `RelatedFileList`),
+   prompt templates, Flow, app, dashboard, reports, tabs, and permission set.
 
-Once `enableFeeds` is already live in the org, subsequent deploys can include all three together.
+For a smaller standalone deployment, deploy the object first and the layout
+afterward. Once `enableFeeds` is already live in the org, later changes can be
+deployed together.
 
 ---
 
@@ -91,15 +97,24 @@ The home tab page assignment is stored on the **CustomApplication**, not on the 
 
 `Small` is not supported for `Tab` overrides and will fail deployment. Only `Large` is valid here.
 
-The FlexiPage must already exist in the org when the CustomApplication deploys — deploy them together or the FlexiPage first.
+The home FlexiPage must be available when the CustomApplication is applied. The
+repo deploys `RFP_Agent_Home_Page` with the full source after its dashboard
+dependency is available; in a separate deployment, deploy the FlexiPage before
+the app.
 
 ---
 
 ## FlexiPage Deploy Order
 
-When deploying FlexiPages that contain related lists for the first time, include them in the same deploy batch as the objects. Deploying FlexiPages after objects in a subsequent step can leave the page referencing relationships that aren't yet resolved in the org's component registry.
+When deploying FlexiPages that contain related lists for the first time, include
+them in the prerequisite batch with the objects and their referenced Apex/LWC
+components. Deploying the page before those dependencies are available can
+leave references unresolved in the deployment validator.
 
-In practice: put custom objects, their FlexiPages, and Apex/LWC into a single `sf project deploy start --metadata` call or use `--source-dir force-app` to deploy everything together.
+In practice, use the repository's first pass in `scripts/deploy.sh`, or put
+custom objects, their FlexiPages, and Apex/LWC into a single
+`sf project deploy start --metadata` call. The later full-source pass is where
+the Files-bearing layouts are applied after `enableFeeds` is live.
 
 ---
 
@@ -113,3 +128,21 @@ A Custom Application (`.app-meta.xml`) requires `<formFactors>` to be deployable
 ```
 
 Omitting these causes the deploy to fail with a validator error even if the app otherwise looks valid.
+
+---
+
+## Prompt Builder related-list grounding
+
+The RFP templates use the parent input alias in the related-list expression:
+
+```text
+{!$RelatedList:RFPRecord.CombinedAttachments.Records}
+```
+
+The template provider receives the `RFP__c` ID through `RFPRecord` and resolves
+the `CombinedAttachments` list. The object-qualified expression
+`{!$RelatedList:RFP__c.CombinedAttachments.Records}` was rejected by Metadata
+API validation in the validated org. Related-list fields are taken from the
+parent page layout for the current user, so the Files related list and file
+visibility must be available to the runtime user. The application still
+validates supported extensions, count, and aggregate size before the model call.

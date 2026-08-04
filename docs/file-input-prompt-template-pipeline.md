@@ -1,8 +1,10 @@
 # Salesforce File-Input Prompt Template Pipeline
 
-How to build a Salesforce pipeline that takes a **PDF or image file** as input, runs it through a **Prompt Builder template** with a set of instructions, parses the structured response, and deploys the whole thing. This document is a working blueprint distilled from a production RFP-extraction implementation — generalize the names to your use case.
+How to build a Salesforce pipeline that takes a **PDF or image file** as input, runs it through a **Prompt Builder template** with a set of instructions, parses the structured response, and deploys the whole thing. This document is a reusable blueprint distilled from the RFP application; its first ten sections show a deliberately generic single-file skeleton, while section 11 documents the repository's implemented record-bound multi-document variant.
 
-The LLM reasoning is fully handled by Prompt Builder (Einstein Generative AI). Apex is only glue: it picks the file, invokes the template, and writes results back to Salesforce.
+The LLM reasoning is fully handled by Prompt Builder (Einstein Generative AI). Apex is only glue: in the generic skeleton it binds one file, while in this repository it validates and links a bounded file corpus, invokes the template, and writes results back to Salesforce.
+
+> **Scope note:** The example names in sections 1–10 (`Job__c`, `Result__c`, and `DocumentReasoningQueueable`) are intentionally generic and are not components in this repository. For the current RFP implementation, use [`README.md`](../README.md) and section 11. Do not copy the example `SourceDocument` input into the shipped RFP templates.
 
 ---
 
@@ -58,9 +60,9 @@ Why this shape:
 | A model is provisioned in your org | Setup → Einstein → Models, or query `aiplatform.ModelsAPI` |
 | Target model API name (e.g. `sfdc_ai__DefaultVertexAIGemini35Flash`) | Setup → Einstein → Models list |
 
-The standard **Einstein Generative AI User** permission set is the gate for runtime template invocations. Without it, every call returns the same opaque "Failed to generate Einstein LLM generations response" error.
+The deployment script assigns `EinsteinGPTPromptTemplateUser` after metadata deployment. Also grant the org's current Prompt Builder execution permission to runtime users; Salesforce Help currently describes `Execute Prompt Templates` as the relevant permission, exposed through Prompt Template Manager in current orgs. Without the required entitlement, runtime failures can be opaque.
 
-Supported file inputs to `ContentDocument`-typed Prompt Builder inputs include **PDF and common image types** (PNG, JPG). The model the template targets must itself be multimodal for images (Gemini and Claude vision models work; pure text models will reject image content).
+Supported file inputs to `ContentDocument`-typed Prompt Builder inputs include **PDF and common image types** (PNG, JPEG, and provider-dependent JPG aliases). The model the template targets must itself be multimodal for images (Gemini and Claude vision models work; pure text models will reject image content).
 
 ---
 
@@ -179,7 +181,7 @@ Object `Job__c` **must have** `<enableFeeds>true</enableFeeds>` if you want the 
 
 ### 5.1 Invocation contract (gotchas)
 
-`ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` has four undocumented requirements. All four produce the same opaque error if missing:
+For the single-file skeleton shown in this section, `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` has four important invocation requirements. All four can produce the same opaque error if missing:
 
 1. **Param keys use the `Input:` prefix** — `Input:SourceDocument`, not `SourceDocument`.
 2. **SObject inputs are passed as `{ 'id' => recordId }` maps**, never as full SObjects. This applies to the ContentDocument file input AND to any other SObject input.
@@ -399,15 +401,15 @@ Use `sourceApiVersion` **63.0 or higher** — earlier versions don't include the
 </PermissionSet>
 ```
 
-Users **also need** the standard `EinsteinGPTPromptTemplateUser` permission set (org-provided) — assign it separately.
+Users **also need** the org's Prompt Builder execution permission — the repository deployment attempts `EinsteinGPTPromptTemplateUser`, while current Salesforce orgs may expose the equivalent `Execute Prompt Templates` permission through Prompt Template Manager.
 
 ---
 
 ## 9. Deploy
 
-### 9.1 One-shot script
+### 9.1 Generic one-shot script example
 
-`scripts/deploy.sh`:
+The following is a minimal script for the generic skeleton, not the repository's `scripts/deploy.sh`:
 
 ```bash
 #!/usr/bin/env bash
@@ -436,7 +438,7 @@ For other shapes, a single `sf project deploy start --source-dir force-app` is f
 sf org open --target-org "$ORG" --path /lightning/setup/EinsteinPromptTemplates/home
 ```
 
-Open your template, click **Preview**, pick a sample ContentDocument record, run. If preview returns content, the runtime invocation will too.
+Open your template, click **Preview**, and test with a sample file or parent record matching the template contract. For this repository, preview against an `RFP__c` parent with linked files and inspect the resolved related-list data; a `ContentDocument`-only preview is for the single-file skeleton above.
 
 ---
 
@@ -444,7 +446,7 @@ Open your template, click **Preview**, pick a sample ContentDocument record, run
 
 | Symptom | Likely cause |
 |---|---|
-| "Failed to generate Einstein LLM generations response" (~50 ms) | Missing `Input:` prefix, missing `applicationName`, SObject passed instead of `{id:...}`, or user missing `EinsteinGPTPromptTemplateUser`. |
+| "Failed to generate Einstein LLM generations response" (~50 ms) | Missing `Input:` prefix, missing `applicationName`, SObject passed instead of `{id:...}`, or user missing the required Prompt Builder execution permission. |
 | Slow failure (~1500 ms+) with same message | LLM-side validation — usually a schema mismatch in the prompt or content policy block. Inspect the template's full prompt text. |
 | "Invalid input value for item Input:X" | The input was passed as a full SObject. Use `new Map<String, Object>{ 'id' => rec.Id }`. |
 | "Model not provisioned" | The model name in `<primaryModel>` isn't enabled in this org. Pick another from Setup → Einstein → Models. |
@@ -471,19 +473,28 @@ The related-list provider receives the parent record ID and the related-list
 name (`CombinedAttachments`); Apex does not loop over files or bind one input
 slot per document. The parent qualifier is the template's input alias, so a
 template whose parent input is named `RFPRecord` uses
-`RFPRecord.CombinedAttachments.Records`; an object-qualified form may fail
-metadata validation. This makes the record the corpus boundary: every supported
-file linked to that parent is eligible, while files linked only elsewhere are
-not.
+`RFPRecord.CombinedAttachments.Records`; the object-qualified form was rejected
+by Metadata API validation in the validated RFP org. This makes the record the
+corpus boundary: every supported file linked to that parent is eligible, while
+files linked only elsewhere are not.
+
+Salesforce builds related-list grounding from the parent object's page layout
+for the current user. If the user cannot see the related list or the associated
+object, no related-list data is sent; if the list is empty, the prompt can still
+complete successfully without file content. Record-level filters are not
+applied, so the application validates the record-bound corpus before invoking
+the model.
 
 Validate the corpus before invocation. The RFP implementation accepts PDF,
-PNG, JPEG, and JPG, excludes unsupported files with a visible reason, and
-fails before the model call when no supported file exists or the known corpus
-exceeds 10 files or 15 MB. The exact provider/model limits must still be
-verified in the target org. The parent object's Files/related-list layout and
-the runtime user's file visibility are prerequisites; a related-list merge can
-resolve successfully with no file data when the list is not available to that
-user, so capture resolved-prompt evidence during validation.
+PNG, JPEG, and JPG at the application layer, excludes unsupported files with a
+visible reason, and fails before the model call when no supported file exists
+or the known corpus exceeds 10 files or 15 MB. Salesforce's published baseline
+is 10 images and 15 MB per request; the repository applies the 10-file count
+conservatively to every supported file, and a provider/model may be stricter.
+The parent object's Files/related-list layout and the runtime user's file
+visibility are prerequisites; a related-list merge can resolve successfully
+with no file data when the list is not available to that user, so capture
+resolved-prompt evidence during validation.
 
 The queueable reads optional `Extraction_Template__c` and
 `Reasoning_Template__c` overrides from the selected profile. An override is
@@ -521,3 +532,10 @@ To turn this skeleton into your specific pipeline:
 6. **Add validation** — if certain instructions are required, mark them and reject the job in the parser when the LLM returns null.
 
 Everything else (file upload, ContentDocument linkage, Queueable + Platform Event, ConnectApi invocation) stays the same.
+
+## 13. Platform references
+
+- [Grounding with Related List Merge Fields](https://help.salesforce.com/s/articleView?id=ai.prompt_builder_ground_related_list.htm&language=en_US&type=5)
+- [Add a Related List with File Inputs to a Flex Prompt Template](https://help.salesforce.com/s/articleView?id=ai.prompt_builder_add_related_lists_file_flex.htm&language=en_US&type=5)
+- [Grounding with File Inputs](https://help.salesforce.com/s/articleView?id=ai.prompt_builder_ground_file.htm&language=en_US&type=5)
+- [Prompt Builder Limits](https://help.salesforce.com/s/articleView?id=ai.prompt_builder_limits.htm&language=en_US&type=5)

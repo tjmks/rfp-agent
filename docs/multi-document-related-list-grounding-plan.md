@@ -1,15 +1,20 @@
 # Multi-Document Prompt Grounding Implementation Plan
 
+> **Status: implemented.** The repository implementation is complete as of
+> 2026-08-04. This file is retained as the design and validation record; the
+> baseline and implementation sequence below describe the historical work that
+> led to the current source.
+
 ## Objective
 
 Replace the single `ContentDocument` Prompt Builder input with record-bound
 related-list grounding so each extraction and reasoning invocation processes
 the bounded collection of supported files linked to an `RFP__c`.
 
-The intended prompt resource is:
+The implemented prompt resource is:
 
 ```text
-{!$RelatedList:RFP__c.CombinedAttachments.Records}
+{!$RelatedList:RFPRecord.CombinedAttachments.Records}
 ```
 
 The `RFP__c` record is the corpus boundary. Apex passes the RFP record to the
@@ -31,7 +36,7 @@ input slots.
 - Keep `Source_Document_Id__c` for one compatibility release, but remove it
   from the Prompt Builder invocation contract.
 
-## Baseline Observed on 2026-07-29
+## Historical baseline observed before implementation (2026-07-29)
 
 ### Local repository
 
@@ -77,6 +82,30 @@ The read-only org snapshot used to create this plan is under
 `/tmp/rfp_stf_baseline`. The executor must take a fresh snapshot because `/tmp`
 is not durable.
 
+## Final repository state (2026-08-04)
+
+- Both default templates use the three-input contract: `RFPRecord`,
+  `QuestionsJSON`, and optional `GroundingContext`.
+- Neither default template declares `RFPDocument`; both use the
+  `RFPRecord.CombinedAttachments` related-list provider.
+- `RFPExtractionQueueable` validates the complete supported corpus once per
+  execution and binds only `RFPRecord`, `QuestionsJSON`, and
+  `GroundingContext`.
+- `RFPFileService` centralizes supported-extension, count, aggregate-size,
+  access, duplicate-link, and session-link cleanup behavior.
+- The upload/controller path accepts multiple files; the Case invocable path
+  discovers all eligible Case files while retaining the explicit singular
+  `contentDocumentId` override.
+- `Source_Document_Id__c` remains a compatibility/preview pointer and is not
+  used for grounding.
+- `RFPMultiDocumentTest` covers corpus validation, duplicate-safe linking,
+  reruns, limits, controller/invocable paths, overrides, and the no-file
+  pre-invocation failure. `MULTIDOC_TEST_RelatedListProof` records the related
+  list resource used for validation.
+- The review toolbar uses plural **View Files** wording and opens linked files
+  in Salesforce's file preview; the record page's Related tab also renders the
+  Files related list.
+
 ## Required Design Decisions
 
 ### Corpus membership
@@ -117,7 +146,7 @@ Profile-specific template overrides remain supported. Document that custom
 override templates must adopt the new three-input contract and related-list
 resource before they are used with the upgraded queueable.
 
-## Implementation Sequence
+## Historical implementation sequence
 
 ### Phase 1: Snapshot and prove the platform resource
 
@@ -239,8 +268,10 @@ Modify `RFPExtractionAction` and the Flow descriptions:
 
 ### Phase 6: Review UI and documentation
 
-1. Replace singular "Open Document" wording with "View Files".
-2. Navigate to `AttachedContentDocuments` on the RFP record where supported.
+1. The implemented toolbar uses plural "View Files" wording.
+2. Use Salesforce's file preview for all linked file IDs from the review toolbar;
+   the RFP record page separately exposes `AttachedContentDocuments` in its
+   Related tab.
 3. Stop treating a blank `Source_Document_Id__c` as proof that an RFP has no
    documents.
 4. Update:
@@ -251,9 +282,9 @@ Modify `RFPExtractionAction` and the Flow descriptions:
 5. Document the corpus rule, limits, permissions, page-layout dependency, and
    custom-template override migration.
 
-### Phase 7: Automated tests
+### Phase 7: Automated tests (delivered)
 
-Add Apex tests covering:
+`RFPMultiDocumentTest.cls` covers:
 
 - zero linked files produces a clear pre-invocation failure;
 - one supported file remains compatible;
@@ -278,13 +309,16 @@ setup with tests for file-array state or document the manual UI coverage.
 
 ### Staged deployment
 
-Because the target org currently has `enableFeeds=false`, deploy in this order:
+Because the target org baseline had `enableFeeds=false`, the repository deploy
+script uses this order:
 
-1. `CustomObject:RFP__c` with `enableFeeds=true`.
-2. RFP layout and FlexiPage with Files related-list configuration.
-3. Apex, LWC, Flow, permissions, and supporting metadata.
-4. New Prompt Builder template versions.
-5. Activate the new template versions only after preview resolution succeeds.
+1. Custom objects, Apex, LWCs, and record pages, making `RFP__c.enableFeeds=true`
+   live before the Files-bearing layout is validated.
+2. Full source, including layouts, Flow, permissions, app/dashboard metadata,
+   and the prompt templates.
+3. Optional Account layout, permission-set assignment, and default-profile seed.
+4. Activate or verify prompt-template versions only after preview resolution
+   succeeds.
 
 Use dry-run/validation deploys before each mutating stage. Do not deploy the
 entire dirty repository blindly.

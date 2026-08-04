@@ -102,7 +102,10 @@ fi
 rm -f "$_seed_log"
 
 echo ""
-echo "✓ Done. No manual steps required."
+echo "✓ Deployment, permission assignment, and default-profile seed complete."
+echo ""
+echo "Manual if needed:"
+echo "  Activate RFP_Email_Case_Auto_Extraction in Setup → Flows for email-triggered extraction."
 echo ""
 echo "Optional:"
 echo "  ./scripts/seed_default_profile.sh $TARGET_ORG"

@@ -19,6 +19,8 @@ cd rfp-agent
 
 This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile. All four Lightning record pages are automatically activated as the org default on deploy — no manual Lightning App Builder step needed.
 
+Additional implementation notes are in [the Prompt Builder pipeline guide](docs/file-input-prompt-template-pipeline.md), [the record-page deployment guide](docs/salesforce-record-page-deployment.md), and [the Salesforce metadata learnings](docs/salesforce-metadata-learnings.md). The multi-document design record is in [the grounding implementation plan](docs/multi-document-related-list-grounding-plan.md).
+
 ---
 
 ## How It Works
@@ -52,7 +54,7 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 | `RFPExtractionAction` | `@InvocableMethod` entry point for Flow and Process Builder — same pipeline as the LWC; accepts `caseId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
 | `RFPResultParser` | Parses and validates the LLM JSON response into `Extraction_Result__c` records |
-| `RFPFinalizationService` | Rolls up confidence, updates `RFP__c` status, fires the platform event |
+| `RFPFinalizationService` | Validates required results and writes accepted/edited values to the parent `RFP__c` during Finalize |
 | `RFPExtractionException` | Typed exception for extraction errors |
 
 ## Lightning Web Components
@@ -66,11 +68,11 @@ This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplat
 
 ## Review UI
 
-The `rfpExtractionReview` component has four filter chips (**All / Pending / Required / Low Confidence**) and three approval actions. Its toolbar reports how many source files are in the record-bound corpus and navigates to the RFP Files related list instead of opening one singular source document.
+The `rfpExtractionReview` component has four filter chips (**All / Pending / Required / Low Confidence**) and three approval actions. Its toolbar reports how many source files are in the record-bound corpus and opens all linked files in Salesforce's file preview; the RFP **Related** tab also exposes the Files related list.
 
 - **Row checkmark (per field):** Marks a single extracted value as Accepted. You can also edit the value (saves as Edited) or reject it. These actions only update the `Review_Status__c` on that `Extraction_Result__c` record — nothing is written to the RFP yet.
 - **Bulk Accept ≥ Threshold:** Accepts all Pending results whose `Confidence_Score__c` meets or exceeds the per-question `Confidence_Threshold__c` (default 80). The UI updates immediately; a background sync reconciles with the server.
-- **Finalize button:** The commit step for the whole document. Disabled until all required fields have been reviewed (no Pending rows remain). When clicked, `RFPFinalizationService` writes every Accepted/Edited value to its mapped field on the `RFP__c` record, then sets `Status__c = 'Approved'` and `Processing_Status__c = 'Complete'`.
+- **Finalize button:** The commit step for the RFP. Disabled until all required fields have been reviewed; optional fields may remain Pending. When clicked, `RFPFinalizationService` writes every Accepted/Edited value to its mapped field on the `RFP__c` record, then sets `Status__c = 'Approved'` and `Processing_Status__c = 'Complete'`.
 
 The **Low Confidence** filter shows results where `Confidence_Score__c < Confidence_Threshold__c`. Thresholds are set per question via the `Confidence_Threshold__c` field on each Extraction Question (default 80; not applied to Reasoning questions).
 
@@ -97,7 +99,7 @@ Neither default template declares `RFPDocument`. Both resolve the complete corpu
 
 ## Permission Set
 
-`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to all permissionable fields, and access to the Apex classes. The optional `RFP_App` and custom-tab metadata is deployed independently and is deliberately not hard-referenced by this permission set, so the set remains deployable in orgs where those components are absent. Assign this plus the standard **Einstein Generative AI User** permission set to any user who needs to run extractions.
+`RFP_Agent` — grants full CRUD on all four custom objects, field-level access to the permissionable fields in this app, visibility for the four custom tabs and `RFP_App`, and access to the Apex classes. The app and tab metadata are therefore dependencies of this permission set. Assign it together with the org's Prompt Builder execution permission; the deploy script attempts to assign `EinsteinGPTPromptTemplateUser`, while newer Salesforce orgs may expose the equivalent `Execute Prompt Templates` permission through Prompt Template Manager.
 
 ```bash
 sf org assign permset --name RFP_Agent --target-org <alias>
@@ -138,11 +140,11 @@ Related lists are defined in the page layout XML using `ChildObject__c.LookupFie
 # Deploy, assign permission sets, and print post-deploy checklist
 ./scripts/deploy.sh <alias>
 
-# Optional: seed the default extraction profile (8 Extraction + 3 Reasoning questions)
+# Optional: refresh the default extraction profile (6 Extraction + 3 Reasoning questions)
 ./scripts/seed_default_profile.sh <alias>
 ```
 
-The deploy script runs two passes: the `RFP__c` object first (required so `enableFeeds=true` is live before the layout validator runs), then the full source.
+The deploy script first deploys the custom objects, Apex classes, LWCs, and record pages so `RFP__c.enableFeeds=true` is live before the Files layout validator runs. It then deploys the full source, the optional Account layout, the permission sets, and the seed data.
 
 ### What's automated on deploy
 
@@ -152,7 +154,7 @@ The deploy script runs two passes: the `RFP__c` object first (required so `enabl
 - **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. `Extraction_Question__c` ships with an **All** list view.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
-- **Seed data** — run `./scripts/seed_default_profile.sh <alias>` to create a "Default RFP" profile (`Is_Default__c = true`) with 8 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact, Contact Email, Required Submission Format) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Alternatively, create questions manually from the **Questions &amp; Grounding** tab on the Extraction Profile record page.
+- **Seed data** — the deploy script creates or refreshes a "Default RFP" profile (`Is_Default__c = true`) with 6 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Run `./scripts/seed_default_profile.sh <alias>` to refresh it later, or create questions manually from the **Questions &amp; Grounding** tab on the Extraction Profile record page.
 
 ## Email-to-Case Auto Extraction Flow
 
