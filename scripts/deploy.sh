@@ -48,6 +48,7 @@ sf project deploy start \
              "ApexClass:RFPExtractionQueueable" \
              "ApexClass:RFPExtractionException" \
              "ApexClass:RFPResultParser" \
+             "ApexClass:RFPFileService" \
              "ApexClass:RFPFinalizationService" \
              "ApexClass:RFPInstallHandler" \
              "StaticResource:AgentforceGuy" \
@@ -95,6 +96,8 @@ if sf apex run \
 else
   echo "  ✗ Seed failed:"
   cat "$_seed_log"
+  rm -f "$_seed_log"
+  exit 1
 fi
 rm -f "$_seed_log"
 

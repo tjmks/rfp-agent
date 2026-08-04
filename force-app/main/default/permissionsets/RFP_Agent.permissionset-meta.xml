@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- App Launcher access -->
+    <applicationVisibilities>
+        <application>RFP_App</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+
     <label>RFP Agent</label>
     <description>Grants access to all RFP Agent objects, fields, Apex classes, and LWC components. Also requires the Einstein Generative AI User permission set for AI processing.</description>
 
@@ -111,4 +117,22 @@
         <apexClass>RFPExtractionException</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+
+    <!-- Custom tab visibility -->
+    <tabSettings>
+        <tab>RFP__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Profile__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Question__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>Extraction_Result__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>
