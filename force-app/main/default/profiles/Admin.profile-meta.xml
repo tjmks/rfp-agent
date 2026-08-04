@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <layoutAssignments>
+        <layout>Extraction_Profile__c-Extraction Profile Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Extraction_Question__c-Extraction Question Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>Extraction_Result__c-Extraction Result Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>RFP__c-RFP Layout</layout>
+    </layoutAssignments>
+</Profile>
