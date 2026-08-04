@@ -50,18 +50,6 @@
     display: inline-block;
 }
 
-.corpus-note {
-    display: flex;
-    align-items: flex-start;
-    padding: 0.625rem 0.75rem;
-    border: 1px solid #c9c7c5;
-    border-radius: 0.25rem;
-    background: #f3f3f3;
-    color: #444;
-    font-size: 0.8125rem;
-    line-height: 1.35;
-}
-
 .file-section {
     border: 1px solid #dddbda;
     border-radius: 0.25rem;

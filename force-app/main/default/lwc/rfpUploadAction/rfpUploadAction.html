@@ -7,11 +7,6 @@
                 <p class="header-subtitle">Let Agentforce extract the answers from every source file.</p>
             </div>
 
-            <div class="corpus-note slds-m-bottom_medium">
-                <lightning-icon icon-name="utility:info" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                <span>All supported files already attached to this RFP are included. Uploading adds files to that record-bound corpus.</span>
-            </div>
-
             <!-- Keep the control visible so users can add more files in several selections. -->
             <div class="slds-form-element slds-m-bottom_medium upload-step">
                 <lightning-file-upload
@@ -87,20 +82,15 @@
                 <p class="file-count slds-m-bottom_medium">{fileCountLabel}</p>
 
                 <div class="slds-form-element slds-m-bottom_medium">
-                    <label class="slds-form-element__label" for="profileSelect">
-                        <abbr class="slds-required" title="required">*</abbr>
-                        Extraction Profile
-                    </label>
-                    <div class="slds-form-element__control">
-                        <lightning-combobox
-                            name="profileSelect"
-                            placeholder="Select a profile…"
-                            value={selectedProfileId}
-                            options={profileOptions}
-                            onchange={handleProfileChange}
-                            required>
-                        </lightning-combobox>
-                    </div>
+                    <lightning-combobox
+                        name="profileSelect"
+                        label="Extraction Profile"
+                        placeholder="Select a profile…"
+                        value={selectedProfileId}
+                        options={profileOptions}
+                        onchange={handleProfileChange}
+                        required>
+                    </lightning-combobox>
                     <p class="slds-form-element__help slds-text-color_weak slds-m-top_xx-small">
                         The profile defines which fields will be extracted from the complete source-document corpus.
                     </p>
