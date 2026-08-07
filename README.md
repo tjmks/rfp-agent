@@ -25,7 +25,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 
 ## How It Works
 
-1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more PDF, PNG, JPEG, or JPG files, selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction automatically when Email-to-Case creates a Case with attachments.
+1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more PDF, PNG, JPEG, or JPG files, selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction from the inbound EmailMessage that created an Email-to-Case Case.
 2. The queueable validates the complete supported file corpus linked to the RFP, splits the profile's questions by `Question_Type__c`, and runs **two passes** over that same record-bound corpus:
    - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, target-compatible GPT5Mini) — strict structured data (dates, contacts, budget).
    - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, target-compatible GPT54) — open-ended analysis (risks, win themes).
@@ -158,12 +158,14 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 
 ## Email-to-Case Auto Extraction Flow
 
-`RFP_Email_Case_Auto_Extraction` is a record-triggered flow that automatically starts extraction when Email-to-Case creates a Case. It ships as **Draft** — you must activate it in Setup → Flows if you want this behaviour.
+`RFP_Email_Case_Auto_Extraction` is an EmailMessage-triggered flow that automatically starts extraction for the inbound email that created an Email-to-Case Case. It ships as **Draft** — you must activate it in Setup → Flows if you want this behaviour.
 
 **What it does:**
-1. Triggers after a Case is created with `Origin = Email` (async after commit, so all email attachments are already linked).
-2. Calls the `RFPExtractionAction` invocable class with the Case ID and Account ID.
-3. The class links every supported PDF/PNG/JPEG/JPG attached to the Case, resolves the **default active Extraction Profile**, creates an `RFP__c` record, and enqueues the extraction job.
+1. Triggers when an inbound `EmailMessage` with a parent record and `HasAttachment = true` is created.
+2. Runs asynchronously in a separate transaction after the EmailMessage transaction commits.
+3. Calls `RFPExtractionAction` with the EmailMessage ID and parent Case ID.
+4. The action verifies `Case.SourceId == EmailMessage.Id`. This excludes manually logged emails, outbound emails, and later replies.
+5. The class links every supported PDF/PNG/JPEG/JPG attached to the source EmailMessage, resolves the **default active Extraction Profile**, creates an `RFP__c` record, and enqueues extraction.
 
 **To activate:** Setup → Flows → *RFP Email Case Auto Extraction* → Activate.
 
@@ -173,7 +175,8 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 
 | Input | Type | Required | Description |
 |---|---|---|---|
-| `caseId` | Id | — | When `contentDocumentId` is omitted, all supported Case files become the RFP corpus |
+| `caseId` | Id | — | Backward-compatible Case entry point; includes supported files linked to the Case and its inbound EmailMessages |
+| `emailMessageId` | Id | — | Email-to-Case source email; processed only when it equals the parent Case's `SourceId` |
 | `contentDocumentId` | Id | — | Singular explicit file override; when supplied it overrides Case auto-discovery |
 | `extractionProfileId` | Id | — | Extraction profile to use; defaults to the active default profile |
 | `accountId` | Id | — | Account to link to the created RFP |

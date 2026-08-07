@@ -178,12 +178,75 @@ public with sharing class RFPFileService {
     }
 
     public static List<Id> getEligibleCaseDocumentIds(Id caseId) {
+        Set<Id> linkedEntityIds = new Set<Id>{ caseId };
+        for (EmailMessage email : [
+            SELECT Id
+            FROM EmailMessage
+            WHERE ParentId = :caseId
+              AND Incoming = true
+        ]) {
+            linkedEntityIds.add(email.Id);
+        }
+
         CorpusValidation validation = validateFiles(
-            getFilesForParent(caseId),
+            getFilesForParents(linkedEntityIds),
             'Case ' + caseId,
             true
         );
         return validation.eligibleDocumentIds();
+    }
+
+    public static List<Id> getEligibleEmailDocumentIds(Id emailMessageId) {
+        CorpusValidation validation = validateFiles(
+            getFilesForParent(emailMessageId),
+            'EmailMessage ' + emailMessageId,
+            true
+        );
+        return validation.eligibleDocumentIds();
+    }
+
+    private static List<FileInfo> getFilesForParents(Set<Id> parentIds) {
+        if (parentIds == null || parentIds.isEmpty()) {
+            return new List<FileInfo>();
+        }
+
+        try {
+            List<ContentDocumentLink> links = [
+                SELECT ContentDocumentId,
+                       ContentDocument.Title,
+                       ContentDocument.FileExtension,
+                       ContentDocument.CreatedDate
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :parentIds
+                ORDER BY ContentDocument.CreatedDate ASC
+            ];
+
+            Set<Id> documentIds = new Set<Id>();
+            for (ContentDocumentLink link : links) {
+                documentIds.add(link.ContentDocumentId);
+            }
+
+            Map<Id, ContentVersion> latestVersions = getLatestVersions(documentIds);
+            List<FileInfo> files = new List<FileInfo>();
+            Set<Id> seen = new Set<Id>();
+            for (ContentDocumentLink link : links) {
+                if (!seen.add(link.ContentDocumentId)) {
+                    continue;
+                }
+                ContentVersion version = latestVersions.get(link.ContentDocumentId);
+                files.add(new FileInfo(
+                    link.ContentDocumentId,
+                    version == null ? link.ContentDocument.Title : version.Title,
+                    version == null ? link.ContentDocument.FileExtension : version.FileExtension,
+                    version?.ContentSize
+                ));
+            }
+            return files;
+        } catch (Exception e) {
+            throw new RFPExtractionException(
+                'Unable to read Salesforce File metadata for the Email-to-Case records: ' + e.getMessage()
+            );
+        }
     }
 
     /**

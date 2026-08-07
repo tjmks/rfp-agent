@@ -238,7 +238,7 @@ private class RFPMultiDocumentTest {
     }
 
     @IsTest(SeeAllData=true)
-    static void testCaseInvocableLinksAllFilesAndHonorsExplicitOverride() {
+    static void testEmailToCaseInvocableUsesSourceEmailFilesAndSkipsLoggedEmail() {
         Extraction_Profile__c profile = createProfile();
         createQuestion(profile, 'MULTIDOC-TEST-case-fact');
         // The org has a pre-existing Case-create automation that requires an
@@ -246,12 +246,15 @@ private class RFPMultiDocumentTest {
         // as the temporary parent; all links and files created by this test
         // are rolled back by the test transaction.
         Case sourceCase = [SELECT Id FROM Case ORDER BY CreatedDate ASC LIMIT 1];
+        EmailMessage sourceEmail = createInboundEmail(sourceCase.Id, 'MULTIDOC-TEST-source-email');
+        EmailMessage loggedEmail = createInboundEmail(sourceCase.Id, 'MULTIDOC-TEST-logged-email');
+        update new Case(Id = sourceCase.Id, SourceId = sourceEmail.Id);
         Id supportedA = createFile('MULTIDOC-TEST-A', 'pdf');
         Id supportedB = createFile('MULTIDOC-TEST-B', 'jpg');
         Id unsupported = createFile('MULTIDOC-TEST-Case-Note', 'txt');
-        linkFile(sourceCase.Id, supportedA);
-        linkFile(sourceCase.Id, supportedB);
-        linkFile(sourceCase.Id, unsupported);
+        linkFile(sourceEmail.Id, supportedA);
+        linkFile(sourceEmail.Id, supportedB);
+        linkFile(sourceEmail.Id, unsupported);
 
         RFPExtractionAction.Request allFiles = new RFPExtractionAction.Request();
         allFiles.caseId = sourceCase.Id;
@@ -271,6 +274,20 @@ private class RFPMultiDocumentTest {
         List<RFPExtractionAction.Result> explicitResults = RFPExtractionAction.execute(
             new List<RFPExtractionAction.Request>{explicit}
         );
+
+        RFPExtractionAction.Request sourceEmailRequest = new RFPExtractionAction.Request();
+        sourceEmailRequest.emailMessageId = sourceEmail.Id;
+        sourceEmailRequest.extractionProfileId = profile.Id;
+        List<RFPExtractionAction.Result> sourceEmailResults = RFPExtractionAction.execute(
+            new List<RFPExtractionAction.Request>{sourceEmailRequest}
+        );
+
+        RFPExtractionAction.Request loggedEmailRequest = new RFPExtractionAction.Request();
+        loggedEmailRequest.emailMessageId = loggedEmail.Id;
+        loggedEmailRequest.extractionProfileId = profile.Id;
+        List<RFPExtractionAction.Result> loggedEmailResults = RFPExtractionAction.execute(
+            new List<RFPExtractionAction.Request>{loggedEmailRequest}
+        );
         Test.stopTest();
         Id allRfpId = allResults[0].rfpId;
         System.assertEquals(2, RFPFileService.getFilesForParent(allRfpId).size());
@@ -278,6 +295,11 @@ private class RFPMultiDocumentTest {
         List<RFPFileService.FileInfo> explicitFiles = RFPFileService.getFilesForParent(explicitRfpId);
         System.assertEquals(1, explicitFiles.size());
         System.assertEquals(supportedA, explicitFiles[0].contentDocumentId);
+        System.assertEquals(false, sourceEmailResults[0].skipped);
+        System.assertNotEquals(null, sourceEmailResults[0].rfpId);
+        System.assertEquals(2, RFPFileService.getFilesForParent(sourceEmailResults[0].rfpId).size());
+        System.assertEquals(true, loggedEmailResults[0].skipped);
+        System.assertEquals(null, loggedEmailResults[0].rfpId);
     }
 
     private static Extraction_Profile__c createProfile() {
@@ -289,6 +311,21 @@ private class RFPMultiDocumentTest {
         );
         insert profile;
         return profile;
+    }
+
+    private static EmailMessage createInboundEmail(Id caseId, String subject) {
+        EmailMessage email = new EmailMessage(
+            ParentId = caseId,
+            Incoming = true,
+            Status = '1',
+            Subject = subject,
+            FromAddress = 'rfp-sender@example.com',
+            ToAddress = 'email-to-case@example.com',
+            TextBody = 'RFP test email',
+            MessageDate = System.now()
+        );
+        insert email;
+        return email;
     }
 
     private static Extraction_Question__c createQuestion(Extraction_Profile__c profile, String name) {

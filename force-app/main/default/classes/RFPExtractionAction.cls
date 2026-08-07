@@ -3,10 +3,17 @@ public with sharing class RFPExtractionAction {
     public class Request {
         @InvocableVariable(
             label='Case ID'
-            description='Optional. When Content Document ID is omitted, all supported PDF, PNG, JPEG, and JPG files linked to this Case become the RFP corpus.'
+            description='Optional backward-compatible entry point. Includes supported files linked to the Case and its inbound EmailMessage records.'
             required=false
         )
         public Id caseId;
+
+        @InvocableVariable(
+            label='Email Message ID'
+            description='Optional. For Email-to-Case, identifies the inbound creation email whose Salesforce Files become the RFP corpus.'
+            required=false
+        )
+        public Id emailMessageId;
 
         @InvocableVariable(
             label='Content Document ID'
@@ -32,11 +39,14 @@ public with sharing class RFPExtractionAction {
     public class Result {
         @InvocableVariable(label='RFP ID' description='ID of the created RFP record.')
         public Id rfpId;
+
+        @InvocableVariable(label='Skipped' description='True when the email is not the source email that created the Case.')
+        public Boolean skipped;
     }
 
     @InvocableMethod(
         label='Run RFP Extraction'
-        description='Creates an RFP record, links all eligible Case files (or one explicit ContentDocument override), and queues record-bound AI extraction.'
+        description='Creates an RFP from an Email-to-Case source email, a Case file corpus, or one explicit ContentDocument, then queues record-bound AI extraction.'
         category='RFP Agent'
     )
     public static List<Result> execute(List<Request> requests) {
@@ -56,16 +66,37 @@ public with sharing class RFPExtractionAction {
         }
 
         List<Id> documentIds;
+        Id effectiveCaseId = request.caseId;
         if (request.contentDocumentId != null) {
             // Preserve the existing singular explicit override semantics.
             documentIds = RFPFileService.validateSelectedDocuments(
                 new List<Id>{ request.contentDocumentId }
             ).eligibleDocumentIds();
-        } else if (request.caseId != null) {
-            documentIds = RFPFileService.getEligibleCaseDocumentIds(request.caseId);
+        } else if (request.emailMessageId != null) {
+            EmailMessage sourceEmail = getSourceEmail(request.emailMessageId);
+            effectiveCaseId = sourceEmail.ParentId;
+
+            Case sourceCase = [
+                SELECT Id, AccountId, SourceId
+                FROM Case
+                WHERE Id = :effectiveCaseId
+                LIMIT 1
+            ];
+            if (sourceCase.SourceId != sourceEmail.Id) {
+                Result skippedResult = new Result();
+                skippedResult.skipped = true;
+                return skippedResult;
+            }
+
+            documentIds = RFPFileService.getEligibleEmailDocumentIds(sourceEmail.Id);
+            if (request.accountId == null) {
+                request.accountId = sourceCase.AccountId;
+            }
+        } else if (effectiveCaseId != null) {
+            documentIds = RFPFileService.getEligibleCaseDocumentIds(effectiveCaseId);
         } else {
             throw new RFPExtractionException(
-                'Supply a caseId or an explicit contentDocumentId before triggering extraction.'
+                'Supply an emailMessageId, caseId, or explicit contentDocumentId before triggering extraction.'
             );
         }
 
@@ -104,6 +135,29 @@ public with sharing class RFPExtractionAction {
         System.enqueueJob(new RFPExtractionQueueable(rfp.Id));
         Result result = new Result();
         result.rfpId = rfp.Id;
+        result.skipped = false;
         return result;
+    }
+
+    private static EmailMessage getSourceEmail(Id emailMessageId) {
+        if (emailMessageId.getSObjectType() != EmailMessage.SObjectType) {
+            throw new RFPExtractionException(
+                'Email Message ID ' + emailMessageId + ' is not an EmailMessage ID.'
+            );
+        }
+
+        EmailMessage sourceEmail = [
+            SELECT Id, ParentId, Incoming
+            FROM EmailMessage
+            WHERE Id = :emailMessageId
+            LIMIT 1
+        ];
+        if (sourceEmail.Incoming != true) {
+            throw new RFPExtractionException('Only inbound EmailMessage records can start Email-to-Case extraction.');
+        }
+        if (sourceEmail.ParentId == null || sourceEmail.ParentId.getSObjectType() != Case.SObjectType) {
+            throw new RFPExtractionException('The inbound EmailMessage must be related to a Case.');
+        }
+        return sourceEmail;
     }
 }

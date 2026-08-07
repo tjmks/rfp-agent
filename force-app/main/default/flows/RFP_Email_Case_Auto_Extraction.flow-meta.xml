@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>62.0</apiVersion>
-    <description>Automatically runs RFP extraction when a Case is created via Email-to-Case. Links every supported PDF, PNG, JPEG, and JPG Salesforce File attached to the Case into the record-bound RFP corpus and uses the default active Extraction Profile. Ships as Draft — activate in Setup → Flows when email-triggered auto-extraction is needed.</description>
+    <apiVersion>63.0</apiVersion>
+    <description>Automatically runs RFP extraction asynchronously for the inbound EmailMessage that created an Email-to-Case Case. The Apex action verifies that Case.SourceId equals the triggering EmailMessage ID, so logged emails and later replies are ignored.</description>
     <environments>Default</environments>
     <interviewLabel>RFP Email Case Auto Extraction {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RFP Email Case Auto Extraction</label>
@@ -23,13 +23,27 @@
         <locationY>0</locationY>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Origin</field>
+            <field>Incoming</field>
             <operator>EqualTo</operator>
             <value>
-                <stringValue>Email</stringValue>
+                <booleanValue>true</booleanValue>
             </value>
         </filters>
-        <object>Case</object>
+        <filters>
+            <field>ParentId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>HasAttachment</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>EmailMessage</object>
         <recordTriggerType>Create</recordTriggerType>
         <scheduledPaths>
             <connector>
@@ -41,7 +55,7 @@
     </start>
     <status>Draft</status>
     <actionCalls>
-        <description>Passes the Case ID and Account ID to RFPExtractionAction, which links all eligible Case files, resolves the default Extraction Profile, creates an RFP record, and enqueues the AI extraction job. A supplied Content Document ID remains a backward-compatible single-file override.</description>
+        <description>Passes the inbound EmailMessage ID and its parent Case ID to RFPExtractionAction. The action verifies that this email is the Case source email, links its supported files, resolves the default Extraction Profile, creates an RFP record, and enqueues AI extraction.</description>
         <name>Run_RFP_Extraction</name>
         <label>Run RFP Extraction</label>
         <locationX>176</locationX>
@@ -51,13 +65,13 @@
         <inputParameters>
             <name>caseId</name>
             <value>
-                <elementReference>$Record.Id</elementReference>
+                <elementReference>$Record.ParentId</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
-            <name>accountId</name>
+            <name>emailMessageId</name>
             <value>
-                <elementReference>$Record.AccountId</elementReference>
+                <elementReference>$Record.Id</elementReference>
             </value>
         </inputParameters>
     </actionCalls>
