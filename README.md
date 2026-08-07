@@ -160,6 +160,8 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 
 `RFP_Email_Case_Auto_Extraction` is an EmailMessage-triggered flow that automatically starts extraction for the inbound email that created an Email-to-Case Case. It ships as **Draft** — you must activate it in Setup → Flows if you want this behaviour.
 
+**Required runtime user configuration:** Before activating the flow, open **Setup → Support Settings** and set **Automated Case User** to an active Salesforce user whose user type supports Connect API. The selected user must be Einstein-enabled and have permission to execute Prompt Builder templates (`EinsteinGPTPromptTemplateUser`, or the org's equivalent **Execute Prompt Templates** permission), as well as the `RFP_Agent` permission set and access to the source files. Otherwise, Email-to-Case can create the RFP but the asynchronous extraction can fail with `The Connect API is not enabled for this user type` or a Prompt Builder permissions error. For demo environments, use an Einstein-enabled **System Administrator** user with the Prompt Template User permission. For production, prefer a dedicated, appropriately licensed user with least-privilege access.
+
 **What it does:**
 1. Triggers when an inbound `EmailMessage` with a parent record and `HasAttachment = true` is created.
 2. Runs asynchronously in a separate transaction after the EmailMessage transaction commits.
