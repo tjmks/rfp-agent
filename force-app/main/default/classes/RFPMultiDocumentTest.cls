@@ -246,9 +246,15 @@ private class RFPMultiDocumentTest {
         // as the temporary parent; all links and files created by this test
         // are rolled back by the test transaction.
         Case sourceCase = [SELECT Id FROM Case ORDER BY CreatedDate ASC LIMIT 1];
+        Account sourceAccount = new Account(Name = 'MULTIDOC-TEST Email-to-Case Account');
+        insert sourceAccount;
         EmailMessage sourceEmail = createInboundEmail(sourceCase.Id, 'MULTIDOC-TEST-source-email');
         EmailMessage loggedEmail = createInboundEmail(sourceCase.Id, 'MULTIDOC-TEST-logged-email');
-        update new Case(Id = sourceCase.Id, SourceId = sourceEmail.Id);
+        update new Case(
+            Id = sourceCase.Id,
+            SourceId = sourceEmail.Id,
+            AccountId = sourceAccount.Id
+        );
         Id supportedA = createFile('MULTIDOC-TEST-A', 'pdf');
         Id supportedB = createFile('MULTIDOC-TEST-B', 'jpg');
         Id unsupported = createFile('MULTIDOC-TEST-Case-Note', 'txt');
@@ -291,13 +297,22 @@ private class RFPMultiDocumentTest {
         Test.stopTest();
         Id allRfpId = allResults[0].rfpId;
         System.assertEquals(2, RFPFileService.getFilesForParent(allRfpId).size());
+        System.assertEquals(
+            sourceAccount.Id,
+            [SELECT Account__c FROM RFP__c WHERE Id = :allRfpId].Account__c
+        );
         Id explicitRfpId = explicitResults[0].rfpId;
         List<RFPFileService.FileInfo> explicitFiles = RFPFileService.getFilesForParent(explicitRfpId);
         System.assertEquals(1, explicitFiles.size());
         System.assertEquals(supportedA, explicitFiles[0].contentDocumentId);
         System.assertEquals(false, sourceEmailResults[0].skipped);
         System.assertNotEquals(null, sourceEmailResults[0].rfpId);
-        System.assertEquals(2, RFPFileService.getFilesForParent(sourceEmailResults[0].rfpId).size());
+        Id sourceEmailRfpId = sourceEmailResults[0].rfpId;
+        System.assertEquals(2, RFPFileService.getFilesForParent(sourceEmailRfpId).size());
+        System.assertEquals(
+            sourceAccount.Id,
+            [SELECT Account__c FROM RFP__c WHERE Id = :sourceEmailRfpId].Account__c
+        );
         System.assertEquals(true, loggedEmailResults[0].skipped);
         System.assertEquals(null, loggedEmailResults[0].rfpId);
     }

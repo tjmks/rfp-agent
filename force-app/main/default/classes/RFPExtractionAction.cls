@@ -67,6 +67,8 @@ public with sharing class RFPExtractionAction {
 
         List<Id> documentIds;
         Id effectiveCaseId = request.caseId;
+        Id effectiveAccountId = request.accountId;
+        Case sourceCase;
         if (request.contentDocumentId != null) {
             // Preserve the existing singular explicit override semantics.
             documentIds = RFPFileService.validateSelectedDocuments(
@@ -76,7 +78,7 @@ public with sharing class RFPExtractionAction {
             EmailMessage sourceEmail = getSourceEmail(request.emailMessageId);
             effectiveCaseId = sourceEmail.ParentId;
 
-            Case sourceCase = [
+            sourceCase = [
                 SELECT Id, AccountId, SourceId
                 FROM Case
                 WHERE Id = :effectiveCaseId
@@ -89,15 +91,24 @@ public with sharing class RFPExtractionAction {
             }
 
             documentIds = RFPFileService.getEligibleEmailDocumentIds(sourceEmail.Id);
-            if (request.accountId == null) {
-                request.accountId = sourceCase.AccountId;
-            }
         } else if (effectiveCaseId != null) {
             documentIds = RFPFileService.getEligibleCaseDocumentIds(effectiveCaseId);
         } else {
             throw new RFPExtractionException(
                 'Supply an emailMessageId, caseId, or explicit contentDocumentId before triggering extraction.'
             );
+        }
+
+        if (effectiveAccountId == null && effectiveCaseId != null) {
+            if (sourceCase == null) {
+                sourceCase = [
+                    SELECT Id, AccountId
+                    FROM Case
+                    WHERE Id = :effectiveCaseId
+                    LIMIT 1
+                ];
+            }
+            effectiveAccountId = sourceCase.AccountId;
         }
 
         Id profileId = request.extractionProfileId;
@@ -122,7 +133,7 @@ public with sharing class RFPExtractionAction {
             Processing_Status__c = 'Running AI',
             Source_Document_Id__c = documentIds[0],
             Extraction_Profile__c = profileId,
-            Account__c = request.accountId,
+            Account__c = effectiveAccountId,
             Opportunity__c = request.opportunityId
         );
         insert rfp;
