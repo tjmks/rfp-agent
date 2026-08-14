@@ -88,6 +88,20 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`) share the same cont
 
 Neither default template declares `RFPDocument`. Both resolve the complete corpus with the server-validated `{!$RelatedList:RFPRecord.CombinedAttachments.Records}` resource, using the `RFPRecord` Flex input alias as the parent boundary. In this org, the otherwise plausible object-qualified `{!$RelatedList:RFP__c.CombinedAttachments.Records}` form was rejected by Metadata API validation. Salesforce Files must be visible to the running user, and the RFP page layout must expose the Files/related-list configuration used by the provider. The implementation rejects unsupported extensions and a corpus over 10 files or 15 MB before a model call; provider/model-specific limits can be stricter.
 
+### Multimodal file limits
+
+Salesforce Prompt Builder applies the following request-level limits when documents are supplied through a related file list:
+
+- **10 files maximum per request**, in any supported combination of PDF, JPG, and PNG.
+- **15 MB maximum aggregate file size per request**.
+- For Vertex AI/Gemini models, each JPG or PNG has an additional **7 MB per-file limit**.
+- Unsupported or oversized files can be excluded during prompt resolution; Prompt Builder reports excluded files in its resolution panel.
+- Model context-window and Einstein Trust Layer limits can still reject a request that satisfies the file-count and byte-size limits.
+
+These Salesforce platform limits are the binding limits for **Gemini 3.5 Flash** in Prompt Builder, even where Google's native model API supports larger document requests. As of August 14, 2026, Salesforce's official multimodal support matrix lists Gemini 3.5 Flash but does not list a Gemini 3.6 Flash model. If an org exposes a newer or tenant-specific model label, check the model's **Model Limitations** panel in Prompt Builder; the Salesforce-wide 10-file/15-MB ceiling still applies unless Salesforce documents a different platform limit.
+
+Official references: [Prompt Builder Limits](https://help.salesforce.com/s/articleView?id=sf.prompt_builder_limits.htm&language=en_US&type=5) and [Large Language Model Multimodal Support](https://help.salesforce.com/s/articleView?id=ai.generative_ai_llm_multimodal_support.htm&language=en_US&type=5).
+
 | Template | Handles | Intended model |
 |---|---|---|
 | `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **sfdc_ai__DefaultGPT5Mini** in the validated target org |
