@@ -3,6 +3,7 @@
     <fullName>Question_Type__c</fullName>
     <label>Question Type</label>
     <description>Determines which prompt/model handles this question. Extraction = structured data via the extraction template; Reasoning = open-ended analysis via the reasoning template.</description>
+    <inlineHelpText>Extraction returns structured values using the extraction template. Reasoning provides open-ended analysis using the reasoning template.</inlineHelpText>
     <type>Picklist</type>
     <required>false</required>
     <valueSet>
