@@ -15,8 +15,7 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "63.0",
   "packageAliases": {
-    "RFP App": "0HoHp000000L64mKAC",
-    "RFP App@1.0.0-1": "04tHp000001Cw2wIAC",
-    "RFP App@1.0.0-2": "04tHp000001Cw31IAC"
+    "RFP App": "0HogK0000004CLxSAM",
+    "RFP App@1.0.0-1": "04tgK000000Hav7QAC"
   }
 }
