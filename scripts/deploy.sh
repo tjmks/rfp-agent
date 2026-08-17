@@ -50,7 +50,6 @@ sf project deploy start \
              "ApexClass:RFPResultParser" \
              "ApexClass:RFPFileService" \
              "ApexClass:RFPFinalizationService" \
-             "ApexClass:RFPInstallHandler" \
              "StaticResource:AgentforceGuy" \
              "LightningComponentBundle:rfpUploadAction" \
              "LightningComponentBundle:rfpExtractionReview" \

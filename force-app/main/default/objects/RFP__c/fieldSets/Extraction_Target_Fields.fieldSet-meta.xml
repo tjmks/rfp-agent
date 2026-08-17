@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FieldSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Extraction_Target_Fields</fullName>
+    <description>Allowlist of RFP__c fields that extraction is permitted to populate during finalization. Admins add only the fields extracted values may be written to. A field configured as an Extraction_Question__c target that is NOT in this set will be rejected at finalization. Ships empty by design — populate it with your subscriber-created target fields.</description>
+    <label>Extraction Target Fields</label>
+</FieldSet>

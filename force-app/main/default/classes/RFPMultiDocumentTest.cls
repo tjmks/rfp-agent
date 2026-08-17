@@ -385,7 +385,7 @@ private class RFPMultiDocumentTest {
             LinkedEntityId = parentId,
             ContentDocumentId = documentId,
             ShareType = 'V',
-            Visibility = 'AllUsers'
+            Visibility = 'InternalUsers'
         );
     }
 }

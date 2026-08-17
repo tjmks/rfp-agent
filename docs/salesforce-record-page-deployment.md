@@ -261,7 +261,6 @@ sf project deploy start \
              "ApexClass:RFPResultParser" \
              "ApexClass:RFPFileService" \
              "ApexClass:RFPFinalizationService" \
-             "ApexClass:RFPInstallHandler" \
              "StaticResource:AgentforceGuy" \
              "LightningComponentBundle:rfpUploadAction" \
              "LightningComponentBundle:rfpExtractionReview" \
@@ -294,4 +293,3 @@ The script then attempts the `optional/` Account-layout deploy, assigns
 | Org-default page assignment | `force-app/main/default/objects/<Obj>/<Obj>.object-meta.xml` (`<actionOverrides>`) |
 | Permission sets | `force-app/main/default/permissionsets/*.permissionset-meta.xml` |
 | Deploy script | `scripts/deploy.sh` |
-| Post-install handler | `force-app/main/default/classes/RFPInstallHandler.cls` |

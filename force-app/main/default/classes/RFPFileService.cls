@@ -291,7 +291,7 @@ public with sharing class RFPFileService {
                     ContentDocumentId = documentId,
                     LinkedEntityId = parentId,
                     ShareType = 'V',
-                    Visibility = 'AllUsers'
+                    Visibility = 'InternalUsers'
                 ));
             }
         }

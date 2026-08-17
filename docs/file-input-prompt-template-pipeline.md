@@ -318,7 +318,7 @@ public with sharing class DocumentReasoningService {
             ContentDocumentId = contentDocumentId,
             LinkedEntityId = job.Id,
             ShareType = 'V',
-            Visibility = 'AllUsers'
+            Visibility = 'InternalUsers'
         );
 
         System.enqueueJob(new DocumentReasoningQueueable(job.Id));
