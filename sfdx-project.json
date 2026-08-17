@@ -6,7 +6,8 @@
       "package": "RFP App",
       "versionName": "ver 1.0",
       "versionNumber": "1.0.0.NEXT",
-      "versionDescription": "Initial release"
+      "versionDescription": "Initial release",
+      "postInstallScript": "RFPInstallHandler"
     }
   ],
   "name": "rfp_agent",
