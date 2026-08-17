@@ -79,12 +79,13 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 
 | Class | Purpose |
 |---|---|
-| `RFPController` | `@AuraEnabled` methods for LWC — load RFP, profiles, results; trigger extraction; bulk accept |
+| `RFPController` | `@AuraEnabled` methods for LWC — load RFP, profiles, results; trigger extraction; bulk accept; finalize |
 | `RFPFileService` | Validates supported file types, count/aggregate size, access, duplicate-safe links, and session-only unlinking |
-| `RFPExtractionAction` | `@InvocableMethod` entry point for Flow and Process Builder — same pipeline as the LWC; accepts `caseId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
+| `RFPExtractionAction` | `@InvocableMethod` entry point for Flow — same pipeline as the LWC; accepts `caseId`, `emailMessageId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
 | `RFPResultParser` | Parses and validates the LLM JSON response into `Extraction_Result__c` records |
 | `RFPFinalizationService` | Validates required results and writes accepted/edited values to the parent `RFP__c` during Finalize |
+| `RFPInstallHandler` | Post-install handler that seeds the starter extraction profile and questions on a fresh package installation |
 | `RFPExtractionException` | Typed exception for extraction errors |
 
 ## Lightning Web Components
@@ -169,9 +170,11 @@ All four reports are in the `RFP Agent Reports` folder and deploy automatically.
 
 All four custom objects ship with Lightning record pages. Each page is automatically activated as the org-wide default on deploy via `actionOverrides` in the object metadata — no manual Lightning App Builder step needed.
 
+Each page's Highlights Panel exposes only the standard **Edit** action. Destructive or misleading defaults such as Delete and Clone are intentionally omitted.
+
 | Page | Layout | Key components |
 |---|---|---|
-| **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar: `rfpUploadAction` for re-running or uploading a new version. |
+| **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar tabs: Activity / Upload (`rfpUploadAction`) for re-running or uploading a new version. |
 | **Extraction Profile** | Header + two column | Tabs: Details / Questions &amp; Grounding (the `Grounding_Context__c` field plus the Extraction Questions and RFPs-using-this-profile related lists) |
 | **Extraction Question** | Header + two column | Tabs: Details / Results (Extraction Results for this question across all RFPs) |
 | **Extraction Result** | Header + two column | Tabs: Details (no child objects — leaf node) |
@@ -228,4 +231,4 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 | `accountId` | Id | — | Account to link to the created RFP |
 | `opportunityId` | Id | — | Opportunity to link to the created RFP |
 
-The action returns an `rfpId` output. It throws a descriptive `RFPExtractionException` if no supported Case file can be found or no active default profile exists — the flow will fault with that message, surfacing the issue rather than silently dropping the work.
+The action returns `rfpId` and `skipped` outputs. `skipped` is true when an inbound email is not the Case source email, so later replies exit without creating an RFP. For actionable requests, it throws a descriptive `RFPExtractionException` if no supported source files are available or no active default profile exists — the flow faults with that message rather than silently dropping the work.
