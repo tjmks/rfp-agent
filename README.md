@@ -4,7 +4,7 @@ A Salesforce application that uses Einstein Generative AI (Prompt Builder) to ex
 
 ## Install
 
-### Deploy from source
+### Install the published package
 
 **Prerequisites**
 - [Salesforce CLI v2+](https://developer.salesforce.com/tools/salesforcecli) installed
@@ -12,12 +12,42 @@ A Salesforce application that uses Einstein Generative AI (Prompt Builder) to ex
 - Einstein Generative AI enabled in the org (Setup → Einstein → Enable)
 
 ```bash
+sf package install \
+  --package 04tgK000000Hav7QAC \
+  --target-org <your-org-alias> \
+  --wait 30
+
+sf org assign permset \
+  --name RFP_Agent \
+  --target-org <your-org-alias>
+
+sf org assign permset \
+  --name EinsteinGPTPromptTemplateUser \
+  --target-org <your-org-alias>
+```
+
+This installs the immutable `RFP App@1.0.0-1` package version. Its post-install handler seeds the default extraction profile automatically. The permission-set commands grant the installing user access to the app and Prompt Builder execution.
+
+The current source defines an **All** list view with useful operational columns for the Extraction Profiles, Extraction Questions, and Extraction Results tabs. These definitions require a source deployment or a newer published package version than `1.0.0-1`. Salesforce stores pinned list views per user and browser, so each user must open **All** and click the pin icon once on each tab to make it their default.
+
+### Deploy from source (contributors)
+
+Use this path when developing or evaluating unreleased source. A source deployment always uses the files in the local checkout.
+
+```bash
 git clone https://github.com/tjmks/rfp-agent.git
 cd rfp-agent
 ./scripts/deploy.sh <your-org-alias>
 ```
 
-This deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile. All four Lightning record pages are automatically activated as the org default on deploy — no manual Lightning App Builder step needed.
+For an existing checkout, update it explicitly before deploying:
+
+```bash
+git pull --ff-only
+./scripts/deploy.sh <your-org-alias>
+```
+
+The script prints the Git branch and commit being deployed and warns when the checkout also contains local changes. It deploys all metadata, assigns the `RFP_Agent` and `EinsteinGPTPromptTemplateUser` permission sets to your user, and seeds a default extraction profile. All four Lightning record pages are automatically activated as the org default on deploy — no manual Lightning App Builder step needed.
 
 Additional implementation notes are in [the Prompt Builder pipeline guide](docs/file-input-prompt-template-pipeline.md), [the record-page deployment guide](docs/salesforce-record-page-deployment.md), and [the Salesforce metadata learnings](docs/salesforce-metadata-learnings.md). The multi-document design record is in [the grounding implementation plan](docs/multi-document-related-list-grounding-plan.md).
 
@@ -165,7 +195,7 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 - **Record pages** for all four custom objects are automatically activated as the org-wide default via `actionOverrides` on the object metadata.
 - **App home page** (`RFP_Agent_Home_Page`) is automatically assigned to the `RFP_App` Lightning app via `actionOverrides` on the `CustomApplication`.
 - **Dashboard & reports** (`RFP_Agent_Dashboard` and four reports in `RFP Agent Reports`) deploy automatically and are immediately available on the home page.
-- **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. `Extraction_Question__c` ships with an **All** list view.
+- **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. Extraction Profiles, Extraction Questions, and Extraction Results each ship with an **All** list view; pinning it as the default is a per-user, per-browser preference.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
 - **Seed data** — the deploy script creates or refreshes a "Default RFP" profile (`Is_Default__c = true`) with 6 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Run `./scripts/seed_default_profile.sh <alias>` to refresh it later, or create questions manually from the **Questions &amp; Grounding** tab on the Extraction Profile record page.

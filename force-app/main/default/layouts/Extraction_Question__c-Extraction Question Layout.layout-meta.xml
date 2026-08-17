@@ -107,6 +107,15 @@
         <fields>Output_Type__c</fields>
         <fields>Name</fields>
     </miniLayout>
+    <platformActionList>
+        <actionListContext>Record</actionListContext>
+        <platformActionListItems>
+            <actionName>Edit</actionName>
+            <actionType>StandardButton</actionType>
+            <sortOrder>0</sortOrder>
+        </platformActionListItems>
+    </platformActionList>
+    <quickActionList/>
     <relatedLists>
         <fields>RFP__c</fields>
         <fields>Extracted_Value__c</fields>

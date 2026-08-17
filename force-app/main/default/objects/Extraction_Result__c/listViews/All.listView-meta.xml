@@ -4,8 +4,8 @@
     <filterScope>Everything</filterScope>
     <label>All</label>
     <columns>NAME</columns>
-    <columns>Extraction_Profile__c</columns>
-    <columns>Question_Type__c</columns>
-    <columns>Output_Type__c</columns>
-    <columns>Is_Active__c</columns>
+    <columns>RFP__c</columns>
+    <columns>Field_Label__c</columns>
+    <columns>Review_Status__c</columns>
+    <columns>Confidence_Score__c</columns>
 </ListView>

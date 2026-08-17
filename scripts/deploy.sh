@@ -2,6 +2,9 @@
 set -euo pipefail
 
 TARGET_ORG="${1:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Preflight checks
 if ! command -v sf &> /dev/null; then
@@ -16,6 +19,15 @@ if [[ -z "$TARGET_ORG" ]]; then
   echo "  Authenticate first:  sf org login web --alias <alias>"
   echo "  List orgs:           sf org list"
   exit 1
+fi
+
+if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null; then
+  echo "→ Deploying commit $(git rev-parse --short HEAD) ($(git rev-parse --abbrev-ref HEAD))"
+  if [[ -n "$(git status --porcelain)" ]]; then
+    echo "  Warning: the checkout contains local changes not represented by that commit."
+  fi
+else
+  echo "→ Deploying source tree (Git commit unavailable)"
 fi
 
 echo "→ Verifying org connection..."
@@ -89,7 +101,7 @@ sf org assign permset \
 echo "→ Seeding default extraction profile"
 _seed_log=$(mktemp)
 if sf apex run \
-  --file "$(dirname "$0")/seed_default_profile.apex" \
+  --file "$SCRIPT_DIR/seed_default_profile.apex" \
   --target-org "$TARGET_ORG" > "$_seed_log" 2>&1; then
   echo "  ✓ Default profile seeded"
 else
@@ -105,6 +117,7 @@ echo "✓ Deployment, permission assignment, and default-profile seed complete."
 echo ""
 echo "Manual if needed:"
 echo "  Activate RFP_Email_Case_Auto_Extraction in Setup → Flows for email-triggered extraction."
+echo "  Open the Extraction Profiles, Questions, and Results tabs and pin the All list view."
 echo ""
 echo "Optional:"
 echo "  ./scripts/seed_default_profile.sh $TARGET_ORG"
