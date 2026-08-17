@@ -1,31 +1,15 @@
 public with sharing class RFPFinalizationService {
 
-    // Reserved app-managed control fields that extraction may never populate,
-    // regardless of field-set configuration. Defense-in-depth alongside the
-    // Extraction_Target_Fields allowlist. Lowercased for case-insensitive match.
+    // Reserved app-managed control fields that extraction may never populate.
+    // Extraction may write to any other updateable RFP__c field; this denylist
+    // protects the app's own state-machine and lookup fields from being
+    // overwritten by a configured extraction target. Lowercased for
+    // case-insensitive matching.
     private static final Set<String> RESERVED_FIELDS = new Set<String>{
         'status__c', 'processing_status__c', 'processing_error__c',
         'overall_confidence__c', 'source_document_id__c',
         'extraction_profile__c', 'account__c', 'opportunity__c'
     };
-
-    /**
-     * API names of RFP__c fields extraction is permitted to write, sourced from
-     * the Extraction_Target_Fields field set so admins can allowlist their own
-     * fields with no Apex change. Lowercased for case-insensitive matching.
-     */
-    private static Set<String> getPermittedTargetFields() {
-        Set<String> permitted = new Set<String>();
-        Schema.FieldSet fs =
-            Schema.SObjectType.RFP__c.fieldSets.getMap().get('Extraction_Target_Fields');
-        if (fs == null) {
-            return permitted;
-        }
-        for (Schema.FieldSetMember member : fs.getFields()) {
-            permitted.add(member.getFieldPath().toLowerCase());
-        }
-        return permitted;
-    }
 
     public static void finalize(Id rfpId) {
         RFP__c rfp = [
@@ -50,7 +34,6 @@ public with sharing class RFPFinalizationService {
 
         Map<String, Schema.SObjectField> fieldMap =
             Schema.SObjectType.RFP__c.fields.getMap();
-        Set<String> permittedFields = getPermittedTargetFields();
 
         RFP__c rfpToUpdate = new RFP__c(Id = rfpId);
         List<String> coercionErrors = new List<String>();
@@ -63,23 +46,11 @@ public with sharing class RFPFinalizationService {
             }
 
             // Reserved app-managed fields are never writable by extraction,
-            // even if mistakenly added to the field set.
+            // protecting the app's own state-machine and lookup fields.
             if (RESERVED_FIELDS.contains(apiName)) {
                 coercionErrors.add(
                     result.Target_Field_API_Name__c
                         + ': reserved field cannot be an extraction target'
-                );
-                continue;
-            }
-
-            // Allowlist: the target must be explicitly permitted via the
-            // Extraction_Target_Fields field set. This bounds dynamic writes to
-            // fields an admin has deliberately opted in, regardless of the
-            // running user's broad update permissions.
-            if (!permittedFields.contains(apiName)) {
-                coercionErrors.add(
-                    result.Target_Field_API_Name__c
-                        + ': not in the Extraction Target Fields allowlist'
                 );
                 continue;
             }
