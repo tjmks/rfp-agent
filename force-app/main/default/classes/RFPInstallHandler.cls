@@ -42,12 +42,20 @@ public with sharing class RFPInstallHandler implements InstallHandler {
         );
         insert profile;
 
+        insert starterQuestions(profile.Id);
+    }
+
+    /**
+     * The starter question set, unsaved. Shared with the question builder,
+     * which offers it as a starting point for an empty profile.
+     */
+    public static List<Extraction_Question__c> starterQuestions(Id profileId) {
         List<Extraction_Question__c> questions = new List<Extraction_Question__c>();
 
         // ── Extraction questions ─────────────────────────────────────────────
         questions.add(new Extraction_Question__c(
             Name = 'Project Title',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'What is the official title or name of the project, program, or solicitation being requested?',
             Question_Type__c = 'Extraction',
             Output_Type__c = 'Text',
@@ -60,7 +68,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Issuing Organization',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'What is the name of the organization, agency, or company issuing this RFP?',
             Extraction_Hint__c = 'Look on the cover page, header, or "About Us" section. Return only the legal entity name.',
             Question_Type__c = 'Extraction',
@@ -74,7 +82,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Submission Deadline',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'What is the deadline for submitting proposals in response to this RFP? Return a single date (the latest hard cutoff if multiple are given).',
             Extraction_Hint__c = 'Use ISO format YYYY-MM-DD. If only a relative date is given (e.g. "30 days after issue"), leave the value empty and lower confidence.',
             Question_Type__c = 'Extraction',
@@ -88,7 +96,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Estimated Contract Value',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'What is the estimated total contract value, budget ceiling, or expected spend for this engagement?',
             Extraction_Hint__c = 'If a range is given, return the upper bound. If no monetary value is stated, leave empty and set confidence to 0.',
             Question_Type__c = 'Extraction',
@@ -102,7 +110,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Required Capabilities',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'List the core capabilities, services, or product categories the responding vendor must provide.',
             Extraction_Hint__c = 'Return a concise list (typically 3-10 items). Prefer the document\'s own phrasing.',
             Question_Type__c = 'Extraction',
@@ -116,7 +124,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Primary Contact',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'Who are the points of contact for questions and submissions? Return all contacts listed, including name, title, and email where available. Format each as "Name, Title — email" on a separate line.',
             Extraction_Hint__c = 'Include all contacts mentioned for proposal submission, technical questions, or general inquiries — do not limit to one.',
             Question_Type__c = 'Extraction',
@@ -133,7 +141,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Win Themes',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'Based on the priorities, evaluation criteria, and pain points expressed in this RFP, what 3-5 win themes should our response emphasize? For each theme, name a specific passage or requirement from the document that supports it.' + wordCap,
             Question_Type__c = 'Reasoning',
             Output_Type__c = 'Long Text',
@@ -146,7 +154,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Risks and Gaps',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'What are the most significant risks, capability gaps, or red flags in this RFP for our company? Consider scope ambiguity, unrealistic timelines, onerous terms, mandatory certifications, and any requirements that may be hard for us to meet.' + wordCap,
             Question_Type__c = 'Reasoning',
             Output_Type__c = 'Long Text',
@@ -159,7 +167,7 @@ public with sharing class RFPInstallHandler implements InstallHandler {
 
         questions.add(new Extraction_Question__c(
             Name = 'Go / No-Go Recommendation',
-            Extraction_Profile__c = profile.Id,
+            Extraction_Profile__c = profileId,
             Question_Text__c = 'Should we pursue this RFP? Give a clear Go, No-Go, or Conditional Go recommendation, then explain the reasoning by weighing fit, win probability, effort to respond, and strategic value. If Conditional, name the conditions that must be true to proceed.' + wordCap,
             Question_Type__c = 'Reasoning',
             Output_Type__c = 'Long Text',
@@ -170,6 +178,6 @@ public with sharing class RFPInstallHandler implements InstallHandler {
             Confidence_Threshold__c = 0
         ));
 
-        insert questions;
+        return questions;
     }
 }

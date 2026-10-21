@@ -26,55 +26,18 @@
         <name>facet_details</name>
         <type>Facet</type>
     </flexiPageRegions>
-    <!-- Grounding context field section, embedded into the Questions & Grounding tab -->
-    <flexiPageRegions>
-        <itemInstances>
-            <fieldInstance>
-                <fieldInstanceProperties>
-                    <name>uiBehavior</name>
-                    <value>none</value>
-                </fieldInstanceProperties>
-                <fieldItem>Record.Grounding_Context__c</fieldItem>
-                <identifier>RecordGrounding_Context__cField</identifier>
-            </fieldInstance>
-        </itemInstances>
-        <name>facet_grounding_fields</name>
-        <type>Facet</type>
-    </flexiPageRegions>
+    <!-- Question builder: questions plus the profile's company context -->
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>body</name>
-                    <value>facet_grounding_fields</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:column</componentName>
-                <identifier>grounding_column</identifier>
+                <componentName>rfpQuestionBuilder</componentName>
+                <identifier>rfpQuestionBuilder</identifier>
             </componentInstance>
         </itemInstances>
-        <name>facet_grounding_columns</name>
+        <name>facet_questions</name>
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
-        <!-- Grounding context surfaced here so admins configure it alongside the questions -->
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
-                    <name>columns</name>
-                    <value>facet_grounding_columns</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>horizontalAlignment</name>
-                    <value>true</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>label</name>
-                    <value>Grounding Context</value>
-                </componentInstanceProperties>
-                <componentName>flexipage:fieldSection</componentName>
-                <identifier>grounding_field_section</identifier>
-            </componentInstance>
-        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
@@ -154,11 +117,25 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>body</name>
+                    <value>facet_questions</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Questions</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>tab_questions</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
                     <value>facet_related</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>title</name>
-                    <value>Questions &amp; Grounding</value>
+                    <value>Related</value>
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>tab_related</identifier>

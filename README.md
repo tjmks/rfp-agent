@@ -71,7 +71,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 |---|---|
 | `RFP__c` | Root record — links to Account, Opportunity, all source documents through Salesforce Files, and an extraction profile. `Source_Document_Id__c` is retained only as a temporary legacy/primary preview pointer. |
 | `Extraction_Profile__c` | Named set of extraction questions (e.g. "Standard RFP Profile"). Optional `Extraction_Template__c` and `Reasoning_Template__c` fields override the org-default Prompt Builder template API names for that profile. |
-| `Extraction_Question__c` | Individual question: label, question text, output type, `Question_Type__c` (`Extraction` or `Reasoning`), and `Confidence_Threshold__c` (Extraction only — ignored and not shown in the builder for Reasoning questions) |
+| `Extraction_Question__c` | Individual question: label, question text, output type, `Question_Type__c` (`Extraction` or `Reasoning`), `Confidence_Threshold__c` (Extraction only — ignored and not shown in the builder for Reasoning questions), optional `Extraction_Hint__c` (appended to the question) and `Target_Field_API_Name__c` (the RFP field an accepted answer is written to) |
 | `Extraction_Result__c` | One result per question per RFP — extracted value, confidence score, review status |
 | `RFP_Extraction_Complete__e` | Platform event fired when a batch of extraction results is ready |
 
@@ -80,6 +80,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 | Class | Purpose |
 |---|---|
 | `RFPController` | `@AuraEnabled` methods for LWC — load RFP, profiles, results; trigger extraction; bulk accept; finalize |
+| `RFPQuestionBuilderController` | Backs `rfpQuestionBuilder` — loads a profile's questions, company context and starter questions; saves all changes in one user-mode transaction with per-question validation |
 | `RFPFileService` | Validates supported file types, count/aggregate size, access, duplicate-safe links, and session-only unlinking |
 | `RFPExtractionAction` | `@InvocableMethod` entry point for Flow — same pipeline as the LWC; accepts `caseId`, `emailMessageId`, `contentDocumentId`, `extractionProfileId`, `accountId`, `opportunityId` |
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
@@ -92,6 +93,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 
 | Component | Where to add | Purpose |
 |---|---|---|
+| `rfpQuestionBuilder` | Extraction_Profile__c record page | Edit a profile's questions and company context in one place: category groups in extraction order, inline editor, drag or menu reordering, category create/rename/remove, one save bar for all changes, and starter questions for an empty profile |
 | `rfpUploadAction` | Any Lightning record page via App Builder | Multi-file upload form — attach PDF/PNG/JPEG/JPG files, select an extraction profile, link to Account/Opportunity, and kick off extraction. Existing RFP files remain in the corpus; removing a newly uploaded file removes only its current-session link. |
 | `rfpExtractionReview` | RFP__c record page | Main review UI — shows extraction progress, results grouped by category, accept/reject/edit controls, bulk accept, and Finalize |
 | `rfpConfidenceBadge` | Sub-component | Colour-coded confidence score badge (green ≥80%, yellow ≥60%, red <60%); thresholds are configured per question via the `Confidence_Threshold__c` field on each Extraction Question |
@@ -175,7 +177,7 @@ Each page's Highlights Panel exposes only the standard **Edit** action. Destruct
 | Page | Layout | Key components |
 |---|---|---|
 | **RFP** | Header + right sidebar | Tabs: Details / Review (`rfpExtractionReview`) / Related (Extraction Results, Files). Sidebar tabs: Activity / Upload (`rfpUploadAction`) for re-running or uploading a new version. |
-| **Extraction Profile** | Header + two column | Tabs: Details / Questions &amp; Grounding (the `Grounding_Context__c` field plus the Extraction Questions and RFPs-using-this-profile related lists) |
+| **Extraction Profile** | Header + two column | Tabs: Details / Questions (`rfpQuestionBuilder`, covering questions and `Grounding_Context__c`) / Related (Extraction Questions and RFPs-using-this-profile dynamic related lists) |
 | **Extraction Question** | Header + two column | Tabs: Details / Results (Extraction Results for this question across all RFPs) |
 | **Extraction Result** | Header + two column | Tabs: Details (no child objects — leaf node) |
 
@@ -201,7 +203,7 @@ The deploy script first deploys the custom objects, Apex classes, LWCs, and reco
 - **Tabs** for all four custom objects (`RFP__c`, `Extraction_Profile__c`, `Extraction_Question__c`, `Extraction_Result__c`) are included in the source and deploy automatically. Extraction Profiles, Extraction Questions, and Extraction Results each ship with an **All** list view; pinning it as the default is a per-user, per-browser preference.
 - **Tab visibility** is included in the `RFP_Agent` permission set.
 - **Flow** (`RFP_Email_Case_Auto_Extraction`) deploys automatically as **Draft** — activate it manually in Setup → Flows if email-triggered auto-extraction is needed.
-- **Seed data** — the deploy script creates or refreshes a "Default RFP" profile (`Is_Default__c = true`) with 6 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Run `./scripts/seed_default_profile.sh <alias>` to refresh it later, or create questions manually from the **Questions &amp; Grounding** tab on the Extraction Profile record page.
+- **Seed data** — the deploy script creates or refreshes a "Default RFP" profile (`Is_Default__c = true`) with 6 Extraction questions (Project Title, Issuing Organization, Submission Deadline, Estimated Contract Value, Required Capabilities, Primary Contact) and 3 Reasoning questions (Win Themes, Risks & Gaps, Go/No-Go Recommendation). Run `./scripts/seed_default_profile.sh <alias>` to refresh it later, or create questions from the **Questions** tab on the Extraction Profile record page.
 
 ## Email-to-Case Auto Extraction Flow
 

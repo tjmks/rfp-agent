@@ -1,0 +1,388 @@
+<template>
+    <div class="builder">
+        <template lwc:if={isLoading}>
+            <div class="builder-loading">
+                <lightning-spinner alternative-text="Loading questions" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:elseif={loadError}>
+            <div class="slds-box slds-theme_shade slds-text-align_center">
+                <p class="slds-text-color_error slds-m-bottom_small">{loadError}</p>
+                <lightning-button label="Try again" onclick={handleRetry}></lightning-button>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <!-- Company context -->
+            <lightning-card title="Company context" icon-name="utility:company">
+                <lightning-helptext slot="actions" content={help.grounding}></lightning-helptext>
+                <div class="slds-card__body_inner">
+                    <lightning-textarea
+                        label="Company context"
+                        variant="label-hidden"
+                        class="grounding"
+                        value={grounding}
+                        placeholder="e.g. Acme is a mid-market SaaS vendor for logistics automation. We serve enterprise customers in North America and don't offer hardware or on-site services."
+                        onchange={handleGroundingChange}
+                        disabled={isReadOnly}>
+                    </lightning-textarea>
+                </div>
+            </lightning-card>
+
+            <!-- Questions -->
+            <lightning-card icon-name="utility:question_mark" class="slds-m-top_small">
+                <div slot="title" class="card-title">
+                    <span>Questions</span>
+                    <span class="card-summary">{summary}</span>
+                </div>
+                <template lwc:if={canEdit}>
+                    <lightning-button-group slot="actions">
+                        <lightning-button
+                            label="New category"
+                            icon-name="utility:richtextbulletedlist"
+                            onclick={handleNewCategoryClick}
+                            disabled={isSaving}>
+                        </lightning-button>
+                        <lightning-button
+                            label="New question"
+                            icon-name="utility:add"
+                            onclick={handleAddQuestion}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </lightning-button-group>
+                </template>
+
+                <div class="slds-card__body_inner">
+                    <template lwc:if={isAddingCategory}>
+                        <div class="add-category">
+                            <lightning-input
+                                label="New category"
+                                placeholder="e.g. Legal — press Enter to add"
+                                max-length="255"
+                                data-field="addCategory"
+                                onblur={handleAddCategoryCommit}
+                                onkeydown={handleAddCategoryKeydown}>
+                            </lightning-input>
+                            <p class="q-note">Categories group questions here and on the review screen. A category is saved once it has a question.</p>
+                        </div>
+                    </template>
+
+                    <template lwc:if={showEmptyState}>
+                        <div class="empty">
+                            <lightning-icon icon-name="utility:list" size="small" class="slds-m-bottom_small"></lightning-icon>
+                            <p class="empty-title">No questions yet</p>
+                            <p class="empty-text">Questions tell the AI what to pull out of each RFP and what to think about it.</p>
+                            <template lwc:if={hasStarterQuestions}>
+                                <div class="empty-actions">
+                                    <lightning-button
+                                        variant="brand"
+                                        label={starterLabel}
+                                        onclick={handleUseStarter}>
+                                    </lightning-button>
+                                    <lightning-button
+                                        label="Start from scratch"
+                                        onclick={handleAddQuestion}>
+                                    </lightning-button>
+                                </div>
+                                <p class="empty-hint">Starter questions are added as unsaved drafts, so you can edit them first.</p>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template for:each={groups} for:item="group">
+                        <section key={group.key} class="group">
+                            <header class="group-header">
+                                <template lwc:if={group.isRenaming}>
+                                    <lightning-input
+                                        class="group-rename"
+                                        label="Category name"
+                                        variant="label-hidden"
+                                        value={group.category}
+                                        max-length="255"
+                                        data-field="renameCategory"
+                                        data-category={group.category}
+                                        onblur={handleRenameCommit}
+                                        onkeydown={handleRenameKeydown}>
+                                    </lightning-input>
+                                </template>
+                                <template lwc:else>
+                                    <span class="group-name">{group.name}</span>
+                                    <span class="group-count">{group.count}</span>
+                                    <template lwc:if={canEdit}>
+                                        <template lwc:if={group.isNamed}>
+                                            <lightning-button-menu
+                                                class="group-menu"
+                                                icon-size="x-small"
+                                                variant="bare"
+                                                alternative-text="Category actions"
+                                                data-category={group.category}
+                                                onselect={handleCategoryMenuSelect}
+                                                disabled={isSaving}>
+                                                <lightning-menu-item label="Rename" value="rename" prefix-icon-name="utility:edit"></lightning-menu-item>
+                                                <lightning-menu-item label="Remove category" value="remove" prefix-icon-name="utility:delete"></lightning-menu-item>
+                                            </lightning-button-menu>
+                                        </template>
+                                    </template>
+                                </template>
+                            </header>
+                            <template lwc:if={group.isEmpty}>
+                                <p class="group-empty">No questions in this category yet.</p>
+                            </template>
+
+                            <template for:each={group.rows} for:item="row">
+                                <div
+                                    key={row.key}
+                                    class={row.rowClass}
+                                    data-key={row.key}
+                                    data-drop-key={row.key}
+                                    draggable={row.draggable}
+                                    ondragstart={handleDragStart}
+                                    ondragend={handleDragEnd}
+                                    ondragover={handleDragOver}
+                                    ondrop={handleDrop}>
+
+                                    <template lwc:if={row.removed}>
+                                        <div class="q-removed">
+                                            <span><strong>{row.displayLabel}</strong> will be removed when you save.</span>
+                                            <lightning-button
+                                                variant="base"
+                                                label="Undo"
+                                                data-key={row.key}
+                                                onclick={handleUndoRemove}
+                                                disabled={isSaving}>
+                                            </lightning-button>
+                                        </div>
+                                    </template>
+
+                                    <template lwc:else>
+                                        <!-- Summary line -->
+                                        <div
+                                            class="q-header"
+                                            role="button"
+                                            tabindex="0"
+                                            aria-expanded={row.ariaExpanded}
+                                            data-key={row.key}
+                                            onclick={handleToggle}
+                                            onkeydown={handleHeaderKeydown}>
+                                            <template lwc:if={canEdit}>
+                                                <span class="q-grip" title="Drag to reorder">
+                                                    <lightning-icon icon-name="utility:drag_and_drop" size="xx-small" alternative-text="Drag to reorder"></lightning-icon>
+                                                </span>
+                                            </template>
+                                            <lightning-icon class="q-chevron" icon-name={row.chevron} size="xx-small" alternative-text=""></lightning-icon>
+                                            <div class="q-text">
+                                                <span class={row.labelClass}>{row.displayLabel}</span>
+                                                <span class="q-preview">{row.preview}</span>
+                                            </div>
+                                            <div class="q-meta">
+                                                <template lwc:if={row.error}>
+                                                    <lightning-icon icon-name="utility:error" size="xx-small" variant="error" alternative-text="Needs attention" title={row.error}></lightning-icon>
+                                                </template>
+                                                <span class={row.typeBadgeClass}>{row.questionType}</span>
+                                                <span class="q-chip">{row.outputType}</span>
+                                                <template lwc:if={row.isRequired}>
+                                                    <span class="q-chip q-chip_required">Required</span>
+                                                </template>
+                                                <template lwc:if={row.isDirty}>
+                                                    <span class="q-dirty" title="Unsaved changes"></span>
+                                                </template>
+                                            </div>
+                                            <template lwc:if={canEdit}>
+                                                <div class="q-menu" onclick={stopPropagation} onkeydown={stopPropagation}>
+                                                    <lightning-button-menu
+                                                        icon-size="x-small"
+                                                        menu-alignment="right"
+                                                        alternative-text="Question actions"
+                                                        data-key={row.key}
+                                                        onselect={handleMenuSelect}
+                                                        disabled={isSaving}>
+                                                        <lightning-menu-item label="Move up" value="up" prefix-icon-name="utility:arrowup" disabled={row.cannotMoveUp}></lightning-menu-item>
+                                                        <lightning-menu-item label="Move down" value="down" prefix-icon-name="utility:arrowdown" disabled={row.cannotMoveDown}></lightning-menu-item>
+                                                        <lightning-menu-item label="Duplicate" value="duplicate" prefix-icon-name="utility:copy"></lightning-menu-item>
+                                                        <lightning-menu-divider></lightning-menu-divider>
+                                                        <lightning-menu-item label="Remove" value="remove" prefix-icon-name="utility:delete"></lightning-menu-item>
+                                                    </lightning-button-menu>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <!-- Inline editor -->
+                                        <template lwc:if={row.isExpanded}>
+                                            <div class="q-editor">
+                                                <template lwc:if={row.error}>
+                                                    <div class="q-error" role="alert">{row.error}</div>
+                                                </template>
+
+                                                <div class="q-grid q-grid_2">
+                                                    <lightning-input
+                                                        label="Label"
+                                                        required
+                                                        max-length="80"
+                                                        field-level-help={help.label}
+                                                        value={row.label}
+                                                        placeholder="e.g. Submission Deadline"
+                                                        data-key={row.key}
+                                                        data-field="label"
+                                                        onchange={handleFieldChange}
+                                                        disabled={isReadOnly}>
+                                                    </lightning-input>
+                                                    <template lwc:if={row.isNewCategory}>
+                                                        <lightning-input
+                                                            label="New category"
+                                                            placeholder="Type a name and press Enter"
+                                                            max-length="255"
+                                                            data-key={row.key}
+                                                            data-field="newCategory"
+                                                            onblur={handleNewCategoryCommit}
+                                                            onkeydown={handleNewCategoryKeydown}>
+                                                        </lightning-input>
+                                                    </template>
+                                                    <template lwc:else>
+                                                        <lightning-combobox
+                                                            label="Category"
+                                                            value={row.category}
+                                                            options={row.categoryOptions}
+                                                            placeholder="Choose a category"
+                                                            data-key={row.key}
+                                                            onchange={handleCategoryChange}
+                                                            disabled={isReadOnly}>
+                                                        </lightning-combobox>
+                                                    </template>
+                                                </div>
+
+                                                <lightning-textarea
+                                                    class="q-question"
+                                                    label="Question"
+                                                    required
+                                                    field-level-help={help.questionText}
+                                                    value={row.questionText}
+                                                    placeholder="e.g. What is the deadline for submitting proposals? Return a single date."
+                                                    data-key={row.key}
+                                                    data-field="questionText"
+                                                    onchange={handleFieldChange}
+                                                    disabled={isReadOnly}>
+                                                </lightning-textarea>
+
+                                                <lightning-textarea
+                                                    class="q-hint"
+                                                    label="Hint (optional)"
+                                                    field-level-help={help.hint}
+                                                    value={row.hint}
+                                                    placeholder="e.g. Use YYYY-MM-DD. If only a relative date is given, leave it empty."
+                                                    data-key={row.key}
+                                                    data-field="hint"
+                                                    onchange={handleFieldChange}
+                                                    disabled={isReadOnly}>
+                                                </lightning-textarea>
+
+                                                <div class="q-grid q-grid_2">
+                                                    <div>
+                                                        <div class="q-field-label">
+                                                            <span class="slds-form-element__label">Question type</span>
+                                                            <lightning-helptext content={help.questionType}></lightning-helptext>
+                                                        </div>
+                                                        <lightning-radio-group
+                                                            type="button"
+                                                            label="Question type"
+                                                            variant="label-hidden"
+                                                            options={questionTypeOptions}
+                                                            value={row.questionType}
+                                                            data-key={row.key}
+                                                            onchange={handleQuestionTypeChange}
+                                                            disabled={isReadOnly}>
+                                                        </lightning-radio-group>
+                                                        <p class="q-note">{row.questionTypeCaption}</p>
+                                                    </div>
+                                                    <lightning-combobox
+                                                        label="Output type"
+                                                        field-level-help={help.outputType}
+                                                        value={row.outputType}
+                                                        options={outputTypeOptions}
+                                                        data-key={row.key}
+                                                        data-field="outputType"
+                                                        onchange={handleFieldChange}
+                                                        disabled={isReadOnly}>
+                                                    </lightning-combobox>
+                                                </div>
+
+                                                <div class="q-settings q-settings_row">
+                                                    <template lwc:if={row.isReasoning}>
+                                                        <p class="q-note">Reasoning answers aren't confidence-scored, so there's no threshold.</p>
+                                                    </template>
+                                                    <template lwc:else>
+                                                        <lightning-slider
+                                                            class="q-slider"
+                                                            label="Confidence threshold"
+                                                            min="0"
+                                                            max="100"
+                                                            step="5"
+                                                            value={row.thresholdValue}
+                                                            data-key={row.key}
+                                                            onchange={handleThresholdChange}
+                                                            disabled={isReadOnly}>
+                                                        </lightning-slider>
+                                                    </template>
+                                                    <lightning-input
+                                                        type="toggle"
+                                                        label="Required"
+                                                        field-level-help={help.required}
+                                                        message-toggle-active=""
+                                                        message-toggle-inactive=""
+                                                        checked={row.isRequired}
+                                                        data-key={row.key}
+                                                        onchange={handleRequiredChange}
+                                                        disabled={isReadOnly}>
+                                                    </lightning-input>
+                                                </div>
+
+                                                <div class="q-editor-footer">
+                                                    <lightning-button label="Done" onclick={handleDone}></lightning-button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <template lwc:if={canEdit}>
+                                <div
+                                    class={group.dropClass}
+                                    data-drop-key={group.dropKey}
+                                    data-category={group.category}
+                                    ondragover={handleDragOver}
+                                    ondrop={handleDrop}>
+                                    <lightning-button
+                                        variant="base"
+                                        label="Add question"
+                                        icon-name="utility:add"
+                                        data-category={group.category}
+                                        onclick={handleAddQuestion}
+                                        disabled={isSaving}>
+                                    </lightning-button>
+                                </div>
+                            </template>
+                        </section>
+                    </template>
+                </div>
+            </lightning-card>
+
+            <!-- Save bar -->
+            <template lwc:if={hasChanges}>
+                <div class="save-bar" role="region" aria-label="Unsaved changes">
+                    <span class="save-bar-text">
+                        <span class="save-bar-dot"></span>
+                        {changeLabel}
+                    </span>
+                    <div class="save-bar-actions">
+                        <lightning-button label="Discard" onclick={handleDiscard} disabled={isSaving}></lightning-button>
+                        <lightning-button variant="brand" label="Save" onclick={handleSave} disabled={isSaving}></lightning-button>
+                    </div>
+                    <template lwc:if={isSaving}>
+                        <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>
+                    </template>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
