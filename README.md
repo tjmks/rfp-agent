@@ -13,7 +13,7 @@ A Salesforce application that uses Einstein Generative AI (Prompt Builder) to ex
 
 ```bash
 sf package install \
-  --package 04tgK000000Hav7QAC \
+  --package 04tgK000000Wo6XQAS \
   --target-org <your-org-alias> \
   --wait 30
 
@@ -26,9 +26,9 @@ sf org assign permset \
   --target-org <your-org-alias>
 ```
 
-This installs the immutable `RFP App@1.0.0-1` package version. Unlocked packages can't run post-install scripts, so the default extraction profile is seeded on first use: the first time the upload component finds no extraction profiles, it creates "Default RFP" with the starter questions. The permission-set commands grant the installing user access to the app and Prompt Builder execution.
+This installs the released `RFP App@1.1.0-1` package version (1.1.0.1), which can be installed in production, sandbox and scratch orgs and upgrades an existing 1.0.0.1 install in place. An upgrade replaces the packaged Extraction Profile record page and resets the prompt templates to Claude Sonnet 5.5. Unlocked packages can't run post-install scripts, so the default extraction profile is seeded on first use: the first time the upload component finds no extraction profiles, it creates "Default RFP" with the starter questions. The permission-set commands grant the installing user access to the app and Prompt Builder execution.
 
-The current source defines an **All** list view with useful operational columns for the Extraction Profiles, Extraction Questions, and Extraction Results tabs. These definitions require a source deployment or a newer published package version than `1.0.0-1`. Salesforce stores pinned list views per user and browser, so each user must open **All** and click the pin icon once on each tab to make it their default.
+The current source defines an **All** list view with useful operational columns for the Extraction Profiles, Extraction Questions, and Extraction Results tabs. They ship with package version 1.1.0.1 and later. Salesforce stores pinned list views per user and browser, so each user must open **All** and click the pin icon once on each tab to make it their default.
 
 ### Deploy from source (contributors)
 
