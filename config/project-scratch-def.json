@@ -3,9 +3,7 @@
   "edition": "Enterprise",
   "features": [
     "EnableSetPasswordInApi",
-    "Einstein1AIPlatform",
-    "EinsteinGPTForSalescloud",
-    "PromptTemplateUser"
+    "Einstein1AIPlatform"
   ],
   "settings": {
     "lightningExperienceSettings": {
@@ -13,6 +11,15 @@
     },
     "mobileSettings": {
       "enableS1EncryptedStoragePref2": false
+    },
+    "caseSettings": {
+      "emailToCase": {
+        "enableEmailToCase": true,
+        "enableOnDemandEmailToCase": true
+      }
+    },
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
     }
   }
 }

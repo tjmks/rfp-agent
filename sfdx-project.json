@@ -4,10 +4,11 @@
       "path": "force-app",
       "default": true,
       "package": "RFP App",
-      "versionName": "ver 1.0",
-      "versionNumber": "1.0.0.NEXT",
-      "versionDescription": "Initial release",
-      "postInstallScript": "RFPInstallHandler"
+      "versionName": "ver 1.1",
+      "versionNumber": "1.1.0.NEXT",
+      "versionDescription": "Question builder on Extraction Profiles; prompt templates on Claude Sonnet 5.5",
+      "postInstallScript": "RFPInstallHandler",
+      "definitionFile": "config/project-scratch-def.json"
     }
   ],
   "name": "rfp_agent",

@@ -27,7 +27,7 @@
             <referenceName>Input:GroundingContext</referenceName>
             <required>false</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude55Sonnet</primaryModel>
         <status>Published</status>
         <content>You are an expert RFP analyst. Read every supplied source document carefully, then answer each question using only facts grounded in the source documents. The RFP record and related files define the corpus boundary; do not use unrelated records or files.
 

@@ -27,7 +27,7 @@
             <referenceName>Input:GroundingContext</referenceName>
             <required>false</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultGPT54</primaryModel>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude55Sonnet</primaryModel>
         <status>Published</status>
         <content>You are a senior RFP strategist advising a team deciding whether and how to respond. Read every supplied source document in full, then answer each analytical question. Reason across the complete corpus: synthesize, infer implications, and surface risks and considerations a careful reader would draw out. You may go beyond literal text, but ground every conclusion in what the source documents actually say.
 

@@ -13,7 +13,7 @@
             <referenceName>Input:RFPRecord</referenceName>
             <required>true</required>
         </inputs>
-        <primaryModel>sfdc_ai__DefaultGPT5Mini</primaryModel>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude55Sonnet</primaryModel>
         <status>Published</status>
         <content>Return ONLY a JSON array describing every file related to this RFP. Include one object per file with title, fileExtension, and contentSize. Do not omit any related file and do not add markdown.
 
