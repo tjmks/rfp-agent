@@ -7,7 +7,6 @@
       "versionName": "ver 1.1",
       "versionNumber": "1.1.0.NEXT",
       "versionDescription": "Question builder on Extraction Profiles; prompt templates on Claude Sonnet 5.5",
-      "postInstallScript": "RFPInstallHandler",
       "definitionFile": "config/project-scratch-def.json"
     }
   ],
@@ -17,6 +16,7 @@
   "sourceApiVersion": "63.0",
   "packageAliases": {
     "RFP App": "0HogK0000004CLxSAM",
-    "RFP App@1.0.0-1": "04tgK000000Hav7QAC"
+    "RFP App@1.0.0-1": "04tgK000000Hav7QAC",
+    "RFP App@1.1.0-1": "04tgK000000Wo6XQAS"
   }
 }

@@ -74,6 +74,12 @@ public with sharing class RFPController {
         return rfp.Id;
     }
 
+    // Creates the starter profile in an org that has none (see RFPInstallHandler).
+    @AuraEnabled
+    public static Boolean ensureStarterProfile() {
+        return RFPInstallHandler.seedIfNoProfiles();
+    }
+
     @AuraEnabled(cacheable=true)
     public static List<Extraction_Profile__c> getExtractionProfiles() {
         return [

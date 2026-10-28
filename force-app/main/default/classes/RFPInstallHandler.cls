@@ -1,11 +1,10 @@
 /**
- * Post-install handler for the RFP App unlocked package.
+ * Seeds the starter "Default RFP" Extraction Profile with its extraction and
+ * reasoning questions so a fresh org is demo-ready without a manual step.
  *
- * Seeds a starter "Default RFP" Extraction Profile with its extraction and
- * reasoning questions so a freshly installed org is demo-ready without a
- * manual seeding step. Registered via `postInstallScript` in sfdx-project.json;
- * Salesforce invokes onInstall automatically after the package metadata is
- * installed (on both first install and upgrade).
+ * Unlocked packages can't run post-install scripts, so the package seeds on
+ * first use instead: seedIfNoProfiles() runs when rfpUploadAction finds no
+ * profiles. onInstall stays for orgs that run the handler explicitly.
  *
  * Behavior:
  *   - Non-destructive: seeds only when no "Default RFP" profile exists, so a
@@ -25,6 +24,20 @@ public with sharing class RFPInstallHandler implements InstallHandler {
             System.debug(LoggingLevel.ERROR,
                 'RFPInstallHandler seeding skipped: ' + e.getMessage());
         }
+    }
+
+    /**
+     * Seeds the starter profile when the org has no extraction profiles at
+     * all and the user may create them. Returns true when it seeded.
+     */
+    public static Boolean seedIfNoProfiles() {
+        if (!Schema.SObjectType.Extraction_Profile__c.isCreateable()
+            || !Schema.SObjectType.Extraction_Question__c.isCreateable()
+            || ![SELECT Id FROM Extraction_Profile__c LIMIT 1].isEmpty()) {
+            return false;
+        }
+        seedDefaultProfile();
+        return true;
     }
 
     private static void seedDefaultProfile() {

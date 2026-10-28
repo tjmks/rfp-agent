@@ -241,11 +241,18 @@ private class RFPMultiDocumentTest {
     static void testEmailToCaseInvocableUsesSourceEmailFilesAndSkipsLoggedEmail() {
         Extraction_Profile__c profile = createProfile();
         createQuestion(profile, 'MULTIDOC-TEST-case-fact');
-        // The org has a pre-existing Case-create automation that requires an
-        // unavailable helperConfig parameter.  Use a read-only existing Case
-        // as the temporary parent; all links and files created by this test
-        // are rolled back by the test transaction.
-        Case sourceCase = [SELECT Id FROM Case ORDER BY CreatedDate ASC LIMIT 1];
+        // Some orgs have a Case-create automation that requires an unavailable
+        // helperConfig parameter, so reuse an existing Case where there is
+        // one; a fresh org (such as a package build org) has none, so create
+        // it. Everything this test writes is rolled back.
+        List<Case> existingCases = [SELECT Id FROM Case ORDER BY CreatedDate ASC LIMIT 1];
+        Case sourceCase;
+        if (existingCases.isEmpty()) {
+            sourceCase = new Case(Subject = 'MULTIDOC-TEST Email-to-Case', Origin = 'Email');
+            insert sourceCase;
+        } else {
+            sourceCase = existingCases[0];
+        }
         Account sourceAccount = new Account(Name = 'MULTIDOC-TEST Email-to-Case Account');
         insert sourceAccount;
         EmailMessage sourceEmail = createInboundEmail(sourceCase.Id, 'MULTIDOC-TEST-source-email');
@@ -385,7 +392,7 @@ private class RFPMultiDocumentTest {
             LinkedEntityId = parentId,
             ContentDocumentId = documentId,
             ShareType = 'V',
-            Visibility = 'InternalUsers'
+            Visibility = RFPFileService.linkVisibility()
         );
     }
 }

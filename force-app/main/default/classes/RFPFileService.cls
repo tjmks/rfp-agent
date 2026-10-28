@@ -291,7 +291,7 @@ public with sharing class RFPFileService {
                     ContentDocumentId = documentId,
                     LinkedEntityId = parentId,
                     ShareType = 'V',
-                    Visibility = 'InternalUsers'
+                    Visibility = linkVisibility()
                 ));
             }
         }
@@ -310,6 +310,16 @@ public with sharing class RFPFileService {
             }
         }
         return result;
+    }
+
+    /**
+     * Keeps RFP files away from Experience Cloud users. Salesforce only
+     * accepts InternalUsers when the org has Experience Cloud (the Network
+     * object exists); without it every user is internal and AllUsers is the
+     * only valid choice.
+     */
+    public static String linkVisibility() {
+        return Schema.getGlobalDescribe().containsKey('network') ? 'InternalUsers' : 'AllUsers';
     }
 
     /**

@@ -24,6 +24,14 @@ private class RFPInstallHandlerTest {
     }
 
     @IsTest
+    static void seedsOnFirstUseOnlyWhenNoProfilesExist() {
+        Assert.isTrue(RFPController.ensureStarterProfile(), 'An org with no profiles gets the starter one');
+        Assert.areEqual(9, [SELECT COUNT() FROM Extraction_Question__c]);
+        Assert.isFalse(RFPController.ensureStarterProfile(), 'Seeding happens only once');
+        Assert.areEqual(1, [SELECT COUNT() FROM Extraction_Profile__c]);
+    }
+
+    @IsTest
     static void isNonDestructiveWhenProfileAlreadyExists() {
         insert new Extraction_Profile__c(
             Name = 'Default RFP',

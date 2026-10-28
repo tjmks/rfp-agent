@@ -1,8 +1,10 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
+import { refreshApex } from '@salesforce/apex';
 import AGENTFORCE_GUY from '@salesforce/resourceUrl/AgentforceGuy';
 import getExtractionProfiles from '@salesforce/apex/RFPController.getExtractionProfiles';
+import ensureStarterProfile from '@salesforce/apex/RFPController.ensureStarterProfile';
 import getRFPFiles from '@salesforce/apex/RFPController.getRFPFiles';
 import initiateExtraction from '@salesforce/apex/RFPController.initiateExtraction';
 import removeSessionFileLinks from '@salesforce/apex/RFPController.removeSessionFileLinks';
@@ -82,8 +84,20 @@ export default class RfpUploadAction extends NavigationMixin(LightningElement) {
         }
     }
 
+    _wiredProfiles;
+    _starterRequested = false;
+
     @wire(getExtractionProfiles)
-    wiredProfiles({ data }) {
+    wiredProfiles(result) {
+        this._wiredProfiles = result;
+        const { data } = result;
+        if (data && data.length === 0 && !this._starterRequested) {
+            // A fresh org has no profiles; create the starter one once.
+            this._starterRequested = true;
+            ensureStarterProfile()
+                .then(created => (created ? refreshApex(this._wiredProfiles) : null))
+                .catch(() => {});
+        }
         if (data) {
             this.profiles = data;
             if (!this.selectedProfileId) {

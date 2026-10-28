@@ -26,7 +26,7 @@ sf org assign permset \
   --target-org <your-org-alias>
 ```
 
-This installs the immutable `RFP App@1.0.0-1` package version. Its post-install handler seeds the default extraction profile automatically. The permission-set commands grant the installing user access to the app and Prompt Builder execution.
+This installs the immutable `RFP App@1.0.0-1` package version. Unlocked packages can't run post-install scripts, so the default extraction profile is seeded on first use: the first time the upload component finds no extraction profiles, it creates "Default RFP" with the starter questions. The permission-set commands grant the installing user access to the app and Prompt Builder execution.
 
 The current source defines an **All** list view with useful operational columns for the Extraction Profiles, Extraction Questions, and Extraction Results tabs. These definitions require a source deployment or a newer published package version than `1.0.0-1`. Salesforce stores pinned list views per user and browser, so each user must open **All** and click the pin icon once on each tab to make it their default.
 
@@ -86,7 +86,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 | `RFPExtractionQueueable` | Async job that calls the Prompt Builder template via `ConnectApi.EinsteinLLM` |
 | `RFPResultParser` | Parses and validates the LLM JSON response into `Extraction_Result__c` records |
 | `RFPFinalizationService` | Validates required results and writes accepted/edited values to the parent `RFP__c` during Finalize |
-| `RFPInstallHandler` | Post-install handler that seeds the starter extraction profile and questions on a fresh package installation |
+| `RFPInstallHandler` | Seeds the starter extraction profile and questions: on first use when an org has no profiles (`RFPController.ensureStarterProfile`), and as the starter set offered by the question builder |
 | `RFPExtractionException` | Typed exception for extraction errors |
 
 ## Lightning Web Components
