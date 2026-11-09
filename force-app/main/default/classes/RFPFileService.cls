@@ -7,8 +7,13 @@ public with sharing class RFPFileService {
     public static final Integer MAX_FILE_COUNT = 10;
     public static final Integer MAX_TOTAL_BYTES = 15728640;
 
+    // Prompt Builder file inputs: PDF/JPG/PNG are sent as-is; Office, .txt and
+    // .csv files are converted to PDF at run time; .eml bodies are added as text.
+    // See Salesforce Help "Grounding with File Inputs".
     private static final Set<String> SUPPORTED_EXTENSIONS = new Set<String>{
-        'pdf', 'png', 'jpeg', 'jpg'
+        'pdf', 'png', 'jpeg', 'jpg',
+        'doc', 'docx', 'xls', 'xlsx', 'xltx', 'ppt', 'pptx',
+        'txt', 'csv', 'eml'
     };
 
     public class FileInfo {
@@ -395,7 +400,7 @@ public with sharing class RFPFileService {
                 : ' Excluded files: ' + String.join(validation.excludedFileNames(), ', ') + '.';
             throw new RFPExtractionException(
                 'No supported Salesforce Files are available for ' + context +
-                '. Attach a PDF, PNG, JPEG, or JPG before starting extraction.' + excluded
+                '. Attach a PDF, image, Office, text, CSV, or email file before starting extraction.' + excluded
             );
         }
         if (validation.eligibleFiles.size() > MAX_FILE_COUNT) {

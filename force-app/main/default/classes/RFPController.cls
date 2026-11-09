@@ -12,7 +12,7 @@ public with sharing class RFPController {
     ) {
         if (rfpId == null && (contentDocumentIds == null || contentDocumentIds.isEmpty())) {
             throw new AuraHandledException(
-                'Select at least one PDF, PNG, JPEG, or JPG before starting extraction.'
+                'Select at least one PDF, image, Office, text, CSV, or email file before starting extraction.'
             );
         }
 

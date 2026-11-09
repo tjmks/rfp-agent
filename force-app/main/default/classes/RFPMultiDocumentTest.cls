@@ -50,7 +50,7 @@ private class RFPMultiDocumentTest {
     static void testValidationLinksAndSessionRemoval() {
         Id supportedA = createFile('MULTIDOC-TEST-A', 'pdf');
         Id supportedB = createFile('MULTIDOC-TEST-B', 'pdf');
-        Id unsupported = createFile('MULTIDOC-TEST-UNSUPPORTED', 'txt');
+        Id unsupported = createFile('MULTIDOC-TEST-UNSUPPORTED', 'zip');
         RFP__c rfp = createRfp(createProfile());
 
         RFPFileService.LinkResult linkResult = RFPFileService.linkDocuments(
@@ -91,6 +91,22 @@ private class RFPMultiDocumentTest {
             System.assert(false, 'An RFP ID must not be accepted as a ContentDocument ID.');
         } catch (RFPExtractionException e) {
             System.assert(e.getMessage().contains('not a ContentDocument ID'));
+        }
+    }
+
+    @IsTest
+    static void testOfficeTextAndEmailFilesAreSupported() {
+        List<String> supported = new List<String>{
+            'pdf', 'PNG', 'jpeg', 'jpg', 'doc', 'docx', 'xls', 'xlsx', 'xltx',
+            'ppt', 'pptx', 'txt', '.csv', 'eml'
+        };
+        for (String extension : supported) {
+            RFPFileService.FileInfo file = new RFPFileService.FileInfo(null, 'MULTIDOC-TEST', extension, 1);
+            System.assert(file.supported, extension + ' must be accepted as a Prompt Builder file input.');
+        }
+        for (String extension : new List<String>{ 'zip', 'html', 'msg', '' }) {
+            RFPFileService.FileInfo file = new RFPFileService.FileInfo(null, 'MULTIDOC-TEST', extension, 1);
+            System.assert(!file.supported, extension + ' must be excluded.');
         }
     }
 
@@ -264,7 +280,7 @@ private class RFPMultiDocumentTest {
         );
         Id supportedA = createFile('MULTIDOC-TEST-A', 'pdf');
         Id supportedB = createFile('MULTIDOC-TEST-B', 'jpg');
-        Id unsupported = createFile('MULTIDOC-TEST-Case-Note', 'txt');
+        Id unsupported = createFile('MULTIDOC-TEST-Case-Note', 'zip');
         linkFile(sourceEmail.Id, supportedA);
         linkFile(sourceEmail.Id, supportedB);
         linkFile(sourceEmail.Id, unsupported);

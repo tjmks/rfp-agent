@@ -55,7 +55,7 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 
 ## How It Works
 
-1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more PDF, PNG, JPEG, or JPG files, selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction from the inbound EmailMessage that created an Email-to-Case Case.
+1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more supported files (PDF, PNG, JPEG/JPG, Word, Excel, PowerPoint, TXT, CSV, or EML — see [Supported file types](#supported-file-types)), selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction from the inbound EmailMessage that created an Email-to-Case Case.
 2. The queueable validates the complete supported file corpus linked to the RFP, splits the profile's questions by `Question_Type__c`, and runs **two passes** over that same record-bound corpus:
    - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, Claude Sonnet 5.5) — strict structured data (dates, contacts, budget).
    - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, Claude Sonnet 5.5) — open-ended analysis (risks, win themes).
@@ -121,19 +121,32 @@ Two `einstein_gpt__flex` templates (`genAiPromptTemplates/`) share the same cont
 
 Neither default template declares `RFPDocument`. Both resolve the complete corpus with the server-validated `{!$RelatedList:RFPRecord.CombinedAttachments.Records}` resource, using the `RFPRecord` Flex input alias as the parent boundary. In this org, the otherwise plausible object-qualified `{!$RelatedList:RFP__c.CombinedAttachments.Records}` form was rejected by Metadata API validation. Salesforce Files must be visible to the running user, and the RFP page layout must expose the Files/related-list configuration used by the provider. The implementation rejects unsupported extensions and a corpus over 10 files or 15 MB before a model call; provider/model-specific limits can be stricter.
 
+### Supported file types
+
+The app accepts the file types Prompt Builder supports as file inputs (`RFPFileService.SUPPORTED_EXTENSIONS`, mirrored in `rfpUploadAction`). Other files stay attached to the RFP but are excluded from extraction.
+
+| How Prompt Builder sends it | Extensions |
+|---|---|
+| Sent as a file (no conversion) | `.pdf`, `.jpg`, `.jpeg`, `.png` |
+| Converted to PDF at run time, then sent as a file | `.doc`, `.docx`, `.xls`, `.xlsx`, `.xltx`, `.ppt`, `.pptx`, `.txt`, `.csv` |
+| Added to the prompt as plain text | `.eml` (body only; attachments and HTML formatting are dropped) |
+
+Conversion happens when the template runs, one file at a time. A file that fails conversion is excluded and listed in the Prompt Builder Resolution panel. The selected model must support PDF input for anything except images to reach it — for example, GPT 5.6 Luna/Terra/Sol are image-only, so they would silently drop PDFs and every converted Office file. Claude Sonnet 5.5 (the pinned default) supports both.
+
 ### Multimodal file limits
 
 Salesforce Prompt Builder applies the following request-level limits when documents are supplied through a related file list:
 
-- **10 files maximum per request**, in any supported combination of PDF, JPG, and PNG.
-- **15 MB maximum aggregate file size per request**.
+- **10 files maximum per request**.
+- **15 MB maximum aggregate file size per request**. Converted files count at their converted PDF size, so an Office file can count larger than it shows in Salesforce Files.
+- Bedrock models (including the default Claude Sonnet 5.5) accept at most **5 PDFs per request** — converted Office, TXT and CSV files count as PDFs — and **4.5 MB per PDF** / **3.75 MB per JPG or PNG**.
 - For Vertex AI/Gemini models, each JPG or PNG has an additional **7 MB per-file limit**.
-- Unsupported or oversized files can be excluded during prompt resolution; Prompt Builder reports excluded files in its resolution panel.
-- Model context-window and Einstein Trust Layer limits can still reject a request that satisfies the file-count and byte-size limits.
+- Unsupported, oversized, or failed-conversion files are excluded during prompt resolution; Prompt Builder reports excluded files in its Resolution panel.
+- Model context-window and Einstein Trust Layer limits can still reject a request that satisfies the file-count and byte-size limits. The Trust Layer does not mask the contents of files sent as PDFs or images; it does mask `.eml` text.
 
-These Salesforce platform limits are the binding limits for **Gemini 3.5 Flash** in Prompt Builder, even where Google's native model API supports larger document requests. As of August 14, 2026, Salesforce's official multimodal support matrix lists Gemini 3.5 Flash but does not list a Gemini 3.6 Flash model. If an org exposes a newer or tenant-specific model label, check the model's **Model Limitations** panel in Prompt Builder; the Salesforce-wide 10-file/15-MB ceiling still applies unless Salesforce documents a different platform limit.
+The app enforces only the 10-file / 15 MB ceiling before the model call (measured on the original file sizes); check the model's **Details** / **Model Limitations** panel in Prompt Builder for stricter per-model limits.
 
-Official references: [Prompt Builder Limits](https://help.salesforce.com/s/articleView?id=sf.prompt_builder_limits.htm&language=en_US&type=5) and [Large Language Model Multimodal Support](https://help.salesforce.com/s/articleView?id=ai.generative_ai_llm_multimodal_support.htm&language=en_US&type=5).
+Official references: [Grounding with File Inputs](https://help.salesforce.com/s/articleView?id=ai.prompt_builder_ground_file.htm&language=en_US&type=5), [Prompt Builder Limits](https://help.salesforce.com/s/articleView?id=sf.prompt_builder_limits.htm&language=en_US&type=5) and [Large Language Model Multimodal Support](https://help.salesforce.com/s/articleView?id=ai.generative_ai_llm_multimodal_support.htm&language=en_US&type=5).
 
 | Template | Handles | Intended model |
 |---|---|---|

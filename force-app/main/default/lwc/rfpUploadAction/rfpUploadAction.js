@@ -14,7 +14,20 @@ import RFP_PROFILE_FIELD from '@salesforce/schema/RFP__c.Extraction_Profile__c';
 import RFP_ACCOUNT_FIELD from '@salesforce/schema/RFP__c.Account__c';
 import RFP_OPPORTUNITY_FIELD from '@salesforce/schema/RFP__c.Opportunity__c';
 
-const SUPPORTED_EXTENSIONS = new Set(['pdf', 'png', 'jpeg', 'jpg']);
+// Mirrors RFPFileService.SUPPORTED_EXTENSIONS (Prompt Builder file inputs).
+const SUPPORTED_EXTENSIONS = new Set([
+    'pdf', 'png', 'jpeg', 'jpg',
+    'doc', 'docx', 'xls', 'xlsx', 'xltx', 'ppt', 'pptx',
+    'txt', 'csv', 'eml'
+]);
+const ICON_BY_EXTENSION = {
+    pdf: 'doctype:pdf',
+    png: 'doctype:image', jpeg: 'doctype:image', jpg: 'doctype:image',
+    doc: 'doctype:word', docx: 'doctype:word',
+    xls: 'doctype:excel', xlsx: 'doctype:excel', xltx: 'doctype:excel',
+    ppt: 'doctype:ppt', pptx: 'doctype:ppt',
+    txt: 'doctype:txt', csv: 'doctype:csv', eml: 'doctype:attachment'
+};
 
 export default class RfpUploadAction extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -34,7 +47,7 @@ export default class RfpUploadAction extends NavigationMixin(LightningElement) {
 
     profiles = [];
     agentforceGuyUrl = AGENTFORCE_GUY;
-    acceptedFileExtensions = ['.pdf', '.png', '.jpeg', '.jpg'];
+    acceptedFileExtensions = [...SUPPORTED_EXTENSIONS].map((ext) => '.' + ext);
     preExistingDocumentIds = [];
     baselineCaptured = false;
 
@@ -312,7 +325,7 @@ export default class RfpUploadAction extends NavigationMixin(LightningElement) {
             displayName: file.name || file.title || 'Unnamed file',
             extension,
             supported,
-            iconName: extension === 'pdf' ? 'doctype:pdf' : 'doctype:image'
+            iconName: ICON_BY_EXTENSION[extension] || 'doctype:unknown'
         };
     }
 
