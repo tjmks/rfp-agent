@@ -57,8 +57,8 @@ Additional implementation notes are in [the Prompt Builder pipeline guide](docs/
 
 1. A user opens the `rfpUploadAction` component — placed directly on any Lightning record page via App Builder. The user uploads one or more PDF, PNG, JPEG, or JPG files, selects an **Extraction Profile**, and clicks Submit. This creates (or reruns) an `RFP__c` record, links every selected file, and immediately enqueues an `RFPExtractionQueueable` job. For an existing RFP, every supported file already linked to that RFP is included automatically. Alternatively, the `RFP_Email_Case_Auto_Extraction` flow (shipped as Draft) can trigger extraction from the inbound EmailMessage that created an Email-to-Case Case.
 2. The queueable validates the complete supported file corpus linked to the RFP, splits the profile's questions by `Question_Type__c`, and runs **two passes** over that same record-bound corpus:
-   - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, GPT 5.6 Terra) — strict structured data (dates, contacts, budget).
-   - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, GPT 5.6 Terra) — open-ended analysis (risks, win themes).
+   - **Extraction** questions → extraction template (default: `RFP_Extract_Questions`, Claude Sonnet 5.5) — strict structured data (dates, contacts, budget).
+   - **Reasoning** questions → reasoning template (default: `RFP_Reason_Questions`, Claude Sonnet 5.5) — open-ended analysis (risks, win themes).
    Both templates receive the RFP record and questions JSON; Prompt Builder resolves all linked files through the related-list resource. Each template can be overridden per profile via `Extraction_Template__c` / `Reasoning_Template__c`, but an override must adopt the same three-input contract and related-list provider.
 3. Einstein LLM returns a JSON array per pass. `RFPResultParser` parses both into `Extraction_Result__c` records.
 4. The queueable rolls up `Overall_Confidence__c` from **extraction results only** (reasoning confidence is fuzzy) and fires the `RFP_Extraction_Complete__e` platform event.
@@ -137,10 +137,10 @@ Official references: [Prompt Builder Limits](https://help.salesforce.com/s/artic
 
 | Template | Handles | Intended model |
 |---|---|---|
-| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **sfdc_ai__DefaultGPT56Terra** (GPT 5.6 Terra) |
-| `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **sfdc_ai__DefaultGPT56Terra** (GPT 5.6 Terra) |
+| `RFP_Extract_Questions` | `Extraction` questions — strict structured data | **sfdc_ai__DefaultBedrockAnthropicClaude55Sonnet** (Claude Sonnet 5.5) |
+| `RFP_Reason_Questions` | `Reasoning` questions — open-ended analysis | **sfdc_ai__DefaultBedrockAnthropicClaude55Sonnet** (Claude Sonnet 5.5) |
 
-**Model pinning:** every template in this repo, including `MULTIDOC_TEST_RelatedListProof`, is pinned to GPT 5.6 Terra, so a source deploy or package install/upgrade sets them to GPT 5.6 Terra and overwrites any model chosen in the org's Prompt Builder. Keep it that way when adding templates. If GPT 5.6 Terra isn't enabled in a target org, enable it in Setup → Einstein → Models rather than changing `<primaryModel>`. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID. (The released 1.1.0.1 package predates this change and still ships Claude Sonnet 5.5; the next package version picks up GPT 5.6 Terra.)
+**Model pinning:** every template in this repo, including `MULTIDOC_TEST_RelatedListProof`, is pinned to Claude Sonnet 5.5, so a source deploy or package install/upgrade sets them to Sonnet 5.5 and overwrites any model chosen in the org's Prompt Builder. Keep it that way when adding templates. If Sonnet 5.5 isn't enabled in a target org, enable it in Setup → Einstein → Models rather than changing `<primaryModel>`. The `<primaryModel>` value is a Salesforce gateway API name, **not** a raw model ID.
 
 **Per-profile template overrides:** set `Extraction_Template__c` and/or `Reasoning_Template__c` on an `Extraction_Profile__c` record to point that profile at a different Prompt Builder template API name. Leave blank to use the org defaults above. This lets you maintain, for example, a "Government RFP" profile that uses a compliance-focused extraction template while the standard profile uses the defaults — without any Apex changes.
 

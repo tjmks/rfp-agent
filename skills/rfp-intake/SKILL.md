@@ -183,7 +183,7 @@ the set of source documents, not questions that assume a single example file.
 ### Extraction Questions
 
 Extraction questions are lookup questions handled by the extraction prompt pass
-(the repository currently defaults to `sfdc_ai__DefaultGPT56Terra`, but model
+(the repository currently defaults to `sfdc_ai__DefaultGPT5Mini`, but model
 selection is deployment-specific). They must be answerable from the source
 documents themselves and should return details that are essentially stated
 verbatim in the documents. They should not ask the model to analyze, synthesize,
@@ -226,7 +226,7 @@ Mark only workflow-blocking fields as `Is_Required__c = true`; too many required
 Reasoning questions are the open-ended analysis path. They should combine the
 complete RFP source-document corpus with evaluator context to produce
 decision-useful analysis (the repository currently defaults to
-`sfdc_ai__DefaultGPT56Terra`, but model selection is deployment-specific). They
+`sfdc_ai__DefaultGPT54`, but model selection is deployment-specific). They
 should be specific to the evaluator company, but sender-neutral enough to work
 for any future RFP. The answer can become sender-specific at extraction time
 because the model reads the linked source documents.
